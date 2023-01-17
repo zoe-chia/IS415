@@ -1,0 +1,86 @@
+---
+title: "Hands-on Exercise 1"
+execute:
+  warning: false
+date: "`r Sys.Date()`"
+---
+
+# Getting Started
+
+## Installing and Loading R Packages
+
+In this section, I will install and load tidyverse and sf packages.
+
+```{r}
+pacman::p_load(tidyverse,sf)
+```
+
+## Importing a geospatial data in shapefile format
+
+```{r}
+mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_WEB_PL")
+cyclingpath <- st_read(dsn = "data/geospatial", layer = "CyclingPathGazette")
+```
+
+## Importing a GIS data in kml format
+
+```{r}
+preschool = st_read("data/geospatial/preschools-location.kml")
+```
+
+## Checking the content of a simple feature data frame
+
+```{r}
+st_geometry(mpsz)
+glimpse(mpsz)
+head(mpsz, n=5)
+```
+
+## Plotting the Geospatial Data
+
+The default plot of an sf object is a multi-plot of all attributes, up to a maximum of 9 attributes.
+
+```{r}
+plot(mpsz)
+```
+
+Plot only the geometry by using the code chunk below
+
+```{r}
+plot(st_geometry(mpsz))
+```
+
+Plot the sf object by using a specific attribute as shown in the code chunk below.
+
+```{r}
+plot(mpsz["PLN_AREA_N"])
+```
+
+## Working with Projection
+
+### Assigning EPSG code to a simple feature data frame
+
+Check data frame:
+
+```{r}
+st_crs(mpsz)
+```
+
+Assign correct EPSG to the dataframe `mpsz` by using `st_set_crs()`
+
+```{r}
+mpsz3414 <- st_set_crs(mpsz, 3414)
+```
+
+Check if the changes have been applied: 
+```{r}
+st_crs(mpsz)
+```
+
+### Transforming the projection of preschool from wgs84 to svy21
+```{r}
+preschool3414 <- st_transform(preschool, crs = 3414)
+st_crs(preschool3414)
+```
+## Importing and Converting an Aspatial Data
+

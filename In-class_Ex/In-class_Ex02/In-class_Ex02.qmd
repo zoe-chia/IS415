@@ -1,0 +1,22 @@
+---
+title: "In-class Exercise 2: Geospatial Data Wrangling"
+date: "r Sys.Date()"
+execute: 
+  message: false
+  warning: false
+editor: visual
+---
+```{r}
+pacman::p_load(tidyverse,sf,funModeling)
+```
+### Geoboundaries dataset
+```{r}
+geoNGA <- st_read("data/geospatial", layer = "geoBoundaries-NGA-ADM2")%>%
+  st_transform(crs = 26392)
+```
+
+### NGA dataset
+```{r}
+geoNGA <- st_read("data/geospatial", layer = "nga_admbnda_adm2_osgof_20190417")%>%
+  st_transform(crs = 26392)
+```
