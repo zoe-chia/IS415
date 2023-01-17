@@ -1,6 +1,6 @@
 ---
 title: "In-class Exercise 2: Geospatial Data Wrangling"
-date: "r Sys.Date()"
+date: "`r Sys.Date()`"
 execute: 
   message: false
   warning: false
