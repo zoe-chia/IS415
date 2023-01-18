@@ -72,15 +72,101 @@ Assign correct EPSG to the dataframe `mpsz` by using `st_set_crs()`
 mpsz3414 <- st_set_crs(mpsz, 3414)
 ```
 
-Check if the changes have been applied: 
+Check if the changes have been applied:
+
 ```{r}
 st_crs(mpsz)
 ```
 
 ### Transforming the projection of preschool from wgs84 to svy21
+
 ```{r}
 preschool3414 <- st_transform(preschool, crs = 3414)
 st_crs(preschool3414)
 ```
-## Importing and Converting an Aspatial Data
 
+# Importing and Converting an Aspatial Data
+
+## Importing apatial data
+
+```{r}
+listings <- read_csv("data/aspatial/listings.csv")
+list(listings)
+```
+
+```{r}
+listings_sf <- st_as_sf(listings, coords = c("longitude", "latitude"), crs=4326)%>%
+  st_transform(crs=3414)
+```
+
+```{r}
+glimpse(listings_sf)
+```
+
+## Geoprocessing with sf package
+
+In this section, we explore 2 commonly used geoprocessing functions, (i) buffering and (ii) point in polygon count.
+
+### Buffering Task: Authority wants to acquire 5m of reserved land on both sides of the current cycling path. How much of the land needs to be acquired and what's it's total area?
+
+```{r}
+buffer_cycling <- st_buffer(cyclingpath, dist = 5, nQuadSegs = 30)
+buffer_cycling$AREA <- st_area(buffer_cycling)
+sum(buffer_cycling$AREA)
+```
+
+### Point-in-polygon count
+
+Task: Find out the number of pre-schools in each planning subzone.
+
+```{r}
+mpsz3414$`Presch Count`<- lengths(st_intersects(mpsz3414, preschool3414))
+```
+
+```{r}
+summary(mpsz3414$`Presch Count`)
+```
+
+To get planning subzone with the most number of preschools:
+
+```{r}
+top_n(mpsz3414, 1, `Presch Count`)
+```
+
+**Task: Find the density of preschools per planning subzone**
+
+```{r}
+mpsz3414$Area <- mpsz3414 %>%  st_area()
+```
+```{r}
+mpsz3414 <- mpsz3414 %>%  mutate(`Presch Density` = `Presch Count`/Area * 1000000)
+
+head(mpsz3414$`Presch Density`, 5)
+```
+## EDA 
+### Histogram
+Distribution of Presch Density
+```{r}
+hist(mpsz3414$`Presch Density`)
+```
+Customise by using ggplot2 functions
+
+```{r}
+ggplot(data=mpsz3414, 
+       aes(x= as.numeric(`Presch Density`)))+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue") +  labs(title = "Are pre-school even distributed in Singapore?",
+       subtitle= "There are many planning sub-zones with a single pre-school, on the other hand, \nthere are two planning sub-zones with at least 20 pre-schools",
+      x = "Pre-school density (per km sq)",
+      y = "Frequency")
+```
+### Scatter plot
+Relationship between Preschool Density and Preschool Count: 
+```{r}
+ggplot(data=mpsz3414, 
+       aes(y = `Presch Count`, 
+           x= as.numeric(`Presch Density`)))+  geom_point(color="black", 
+             fill="light blue") +  xlim(0, 40) +  ylim(0, 40) +  labs(title = "",
+      x = "Pre-school density (per km sq)",
+      y = "Pre-school count")
+```
