@@ -54,7 +54,7 @@ popdata2020 <- popdata2020 %>%
   filter(`ECONOMY ACTIVE` > 0)
 ```
 
-Formar data: Left join
+Format data: Left join
 
 ```{r}
 mpsz_pop2020 <- left_join(mpsz, popdata2020,
