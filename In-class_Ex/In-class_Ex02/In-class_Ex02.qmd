@@ -6,17 +6,215 @@ execute:
   warning: false
 editor: visual
 ---
+
+# Load Packages and Data
+
+`sf`: handle geospatial data\
+`tidyverse`: for data science work (data handling, manual processing and manipulation)\
+`funModeling`: quick exploratory data analysis
+
 ```{r}
 pacman::p_load(tidyverse,sf,funModeling)
 ```
+
 ### Geoboundaries dataset
+
+Transform data's WGS84 format to the Projected Coordinate Systems of Nigeria's. All data will now be in metres.
+
 ```{r}
 geoNGA <- st_read("data/geospatial", layer = "geoBoundaries-NGA-ADM2")%>%
   st_transform(crs = 26392)
 ```
 
 ### NGA dataset
+
 ```{r}
-geoNGA <- st_read("data/geospatial", layer = "nga_admbnda_adm2_osgof_20190417")%>%
+NGA <- st_read("data/geospatial", layer = "nga_admbnda_adm2_osgof_20190417")%>%
   st_transform(crs = 26392)
+```
+
+## Aspatial data
+
+### Waterpoint dataset
+
+Dataset consists of the entire world's waterpoints. Hence, filter and get only those with "Nigeria" mentioned.
+
+```{r}
+wp_nga <- read_csv("data/aspatial/WPdx.csv") %>%
+  filter(`#clean_country_name` == "Nigeria")
+```
+
+#### Converting water point data into sf point features
+
+Aspatial data does not have spatial properties. Hence, to turn it into geospatial data, we need to (i) convert it into the appropriate data type and (ii) add projection information (iii) transform to the respective coordinate system:
+
+(1) Convert the wkt field into sfc field by using st_as_sfc() data type.
+
+```{r}
+wp_nga$Geometry = st_as_sfc(wp_nga$`New Georeferenced Column`)
+wp_nga
+```
+
+(2) Convert tibble dataframe into an sf object using st_sf(). It is also important for us to include the referencing system of the data into the sf object. Data in wp_nga is in decimals, and in tibble form. It does not have the projection information. We need to put back its original projection inform (WGS84).
+
+```{r}
+wp_sf <- st_sf(wp_nga, crs = 4326)
+wp_sf
+```
+
+(3) Transform to Nigeria's projected coordinate system
+
+```{r}
+wp_sf <- wp_sf %>%
+  st_transform(crs = 26392)
+```
+
+# Geospatial Data Cleaning
+
+## Excluding redundant fields
+
+filter() - selects rows that you want to retain\
+select() - selects columns that you want to retain
+
+```{r}
+NGA <- NGA %>%
+  select(c(3:4, 8:9))
+```
+
+## Checking for duplicate names
+
+Using duplicated() of Base R, we can flag out LGA names that might be duplicated as shown in the code chunk below.
+
+```{r}
+NGA$ADM2_EN[duplicated(NGA$ADM2_EN)==TRUE]
+```
+
+The above output shows us that those are the duplicated records.
+
+To fix this, add the state (ADM1_EN) behind.
+
+```{r}
+NGA$ADM2_EN[94] <- "Bassa, Kogi"
+NGA$ADM2_EN[95] <- "Bassa, Plateau"
+NGA$ADM2_EN[304] <- "Ifelodun, Kwara"
+NGA$ADM2_EN[305] <- "Ifelodun, Osun"
+NGA$ADM2_EN[355] <- "Irepodun, Kwara"
+NGA$ADM2_EN[356] <- "Irepodun, Osun"
+NGA$ADM2_EN[519] <- "Nasawara, Kano"
+NGA$ADM2_EN[520] <- "Nasawara, Nasawara"
+NGA$ADM2_EN[546] <- "Obi, Benue"
+NGA$ADM2_EN[547] <- "Obi, Nasawara"
+NGA$ADM2_EN[693] <- "Surulere, Lagos"
+NGA$ADM2_EN[694] <- "Surulere, Oyo"
+```
+
+Check that duplicates have been handled:
+
+```{r}
+NGA$ADM2_EN[duplicated(NGA$ADM2_EN)==TRUE]
+```
+
+## Data Wrangling for Water Point Data
+
+`freq()` of funModeling package is used to reveal the distribution of water point status visually.
+
+```{r}
+freq(data = wp_sf, 
+     input = '#status_clean')
+```
+
+**Rename columns**
+
+Rename NA so we can do mathematical calculations.
+
+rename() - Remove "\#", for example from '#status_clean' to status_clean for easier handling in subsequent steps.\
+select () - To select the column status_clean in the output of the sf dataframe.\
+mutate() & replace_na() to recode all the NA values in status_clean into 'unknown'
+
+```{r}
+wp_sf_nga <- wp_sf %>%
+  rename(status_clean = '#status_clean') %>%
+  select(status_clean) %>%
+  mutate(status_clean = replace_na(
+    status_clean, "unknown"
+  ))
+```
+
+## Extracting Water Point Data
+
+The code chunk below is used to extract functional water points.
+
+```{r}
+wp_functional <- wp_sf_nga %>% 
+  filter(status_clean %in% 
+           c("Functional",
+             "Functional but not in use", 
+             "Functional but needs repair"))
+```
+
+Extract non-functional water points:
+
+```{r}
+wp_nonfunctional <- wp_sf_nga %>% 
+  filter(status_clean %in%
+           c("Abandoned/Decommissioned",
+             "Abandoned",
+             "Non-Functional due to dry season", 
+             "Non-Functional",
+             "Non functional due to dry season"))
+```
+
+Extract water points with unknown status:
+
+```{r}
+wp_unknown <- wp_sf_nga %>% 
+  filter(status_clean == "unknown")
+```
+
+## Point-in-Polygon Count
+
+Identify functional water points in each LGA by using `st_intersects()` of the sf_package.\
+Next, use `lengths()` to calculate the number of functional water points that fall inside each LGA.
+
+```{r}
+NGA_wp <- NGA %>% 
+  mutate(`total_wp` = lengths(
+    st_intersects(NGA, wp_sf_nga))) %>%
+  mutate(`wp_functional` = lengths(
+    st_intersects(NGA, wp_functional))) %>%
+  mutate(`wp_nonfunctional` = lengths(
+    st_intersects(NGA, wp_nonfunctional))) %>%
+  mutate(`wp_unknown` = lengths(
+    st_intersects(NGA, wp_unknown)))
+```
+
+These 4 new fields (total_wp, wp_functional, wp_nonfunctional, wp_unknown) are created in `NGA_wp`.
+
+## Visualing attributes by using statistical graphs
+
+gglplot2 package is used to reveal the distribution of total water points by LGA in a histrogram.
+
+```{r}
+ggplot(data = NGA_wp,
+       aes(x = total_wp)) + 
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue") +
+  geom_vline(aes(xintercept=mean(
+    total_wp, na.rm=T)),
+             color="red", 
+             linetype="dashed", 
+             size=0.8) +
+  ggtitle("Distribution of total water points by LGA") +
+  xlab("No. of water points") +
+  ylab("No. of\nLGAs") +
+  theme(axis.title.y=element_text(angle = 0))
+```
+
+## Save the analytical data in rds format
+
+It is recommended retain the sf object structure for subsequent analysis by saving the sf data.frame into rds format.
+
+```{r}
+write_rds(NGA_wp, "data/rds/NGA_wp.rds")
 ```
