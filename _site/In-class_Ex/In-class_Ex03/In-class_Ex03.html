@@ -202,9 +202,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <ul class="collapse">
   <li><a href="#import-data" id="toc-import-data" class="nav-link" data-scroll-target="#import-data">Import data</a></li>
   </ul></li>
+  <li><a href="#basic-choropleth-mapping" id="toc-basic-choropleth-mapping" class="nav-link" data-scroll-target="#basic-choropleth-mapping">Basic Choropleth Mapping</a></li>
   <li><a href="#choropleth-map-for-rates" id="toc-choropleth-map-for-rates" class="nav-link" data-scroll-target="#choropleth-map-for-rates">Choropleth Map for Rates</a>
   <ul class="collapse">
   <li><a href="#plotting-map-of-rate" id="toc-plotting-map-of-rate" class="nav-link" data-scroll-target="#plotting-map-of-rate">Plotting map of rate</a></li>
+  </ul></li>
+  <li><a href="#extreme-value-maps" id="toc-extreme-value-maps" class="nav-link" data-scroll-target="#extreme-value-maps">Extreme Value Maps</a>
+  <ul class="collapse">
   <li><a href="#percentile-map" id="toc-percentile-map" class="nav-link" data-scroll-target="#percentile-map">Percentile map</a>
   <ul class="collapse">
   <li><a href="#data-preparation" id="toc-data-preparation" class="nav-link" data-scroll-target="#data-preparation">Data Preparation</a></li>
@@ -246,7 +250,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">January 28, 2023</p>
+      <p class="date-modified">January 29, 2023</p>
     </div>
   </div>
     
@@ -265,7 +269,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>NGA_wp <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data/rds/NGA_wp.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>#Basic Choropleth Mapping Distribution of non-functional water points by LGA</p>
+</section>
+</section>
+<section id="basic-choropleth-mapping" class="level1">
+<h1>Basic Choropleth Mapping</h1>
+<p>Distribution of non-functional water points by LGA</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(NGA_wp) <span class="sc">+</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"wp_functional"</span>,</span>
@@ -296,7 +304,6 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 </div>
 </section>
-</section>
 <section id="choropleth-map-for-rates" class="level1">
 <h1>Choropleth Map for Rates</h1>
 <p>Compare the proportion of functional water points to the proportion of non-functional water points.</p>
@@ -322,8 +329,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p><img src="In-class_Ex03_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
-<p>#Extreme Value Maps Identify outliers by highlighting extreme values at the lower and upper end of the scale.</p>
 </section>
+</section>
+<section id="extreme-value-maps" class="level1">
+<h1>Extreme Value Maps</h1>
+<p>Identify outliers by highlighting extreme values at the lower and upper end of the scale.</p>
 <section id="percentile-map" class="level2">
 <h2 class="anchored" data-anchor-id="percentile-map">Percentile map</h2>
 <section id="data-preparation" class="level3">
@@ -476,7 +486,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(v)</span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p><strong>Test the get.var function</strong></p>
+<p><strong>Test the functions</strong></p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> <span class="fu">get.var</span>(<span class="st">"wp_nonfunctional"</span>, NGA_wp) </span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">boxbreaks</span>(var)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
