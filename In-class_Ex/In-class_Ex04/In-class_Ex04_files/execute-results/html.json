@@ -1,0 +1,14 @@
+{
+  "hash": "fc97ccf1632b2b3665df75f1d9b0fb3a",
+  "result": {
+    "markdown": "---\ntitle: \"In class Exercise 4\"\ndate-modified: \"2023-01-30\"\ndate: \"30 January 2023\"\nexecute: \n  message: false\n  warning: false\neditor: visual\n---\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}
