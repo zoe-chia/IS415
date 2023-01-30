@@ -1,0 +1,86 @@
+---
+title: "Hands-On Ex 3: 1st Order Spatial Point Patterns Analysis Methods"
+date: "`r Sys.Date()`"
+execute: 
+  message: false
+  warning: false
+editor: visual
+---
+
+## Importing packages and loading data
+
+### Loading packages
+
+```{r}
+pacman::p_load(maptools, sf, raster, spatstat, tmap)
+```
+
+### Loading data
+
+```{r}
+childcare_sf <- st_read("data/child-care-services-geojson.geojson") %>%
+  st_transform(crs = 3414)
+```
+
+```{r}
+sg_sf <- st_read(dsn = "data", layer="CostalOutline")
+```
+
+```{r}
+mpsz_sf <- st_read(dsn = "data", 
+                layer = "MP14_SUBZONE_WEB_PL")
+```
+
+
+
+#### Mapping the geospatial datasets
+
+```{r}
+st_geometry(childcare_sf)
+```
+
+```{r}
+st_geometry(sg_sf)
+```
+
+```{r}
+st_geometry(mpsz_sf)
+```
+
+
+**Pin map**
+
+```{r}
+tmap_mode('view')
+tm_shape(childcare_sf)+
+  tm_dots()
+```
+
+```{r}
+tmap_mode('plot')
+```
+
+## Geospatial Data Wrangling
+Our data is imported as simple feature formats. spatstat requires the analytical data in ppp object form. There is no direct way to convert a Spatial* classes into ppp object. We need to convert the Spatial classes* into Spatial object first. Simple feature format --> Spatial classes/dataframe --> generic spatial object --> ppp format
+
+### Converting sf data frames to sp's Spatial* class
+```{r}
+childcare <- as_Spatial(childcare_sf)
+mpsz <- as_Spatial(mpsz_sf)
+sg <- as_Spatial(sg_sf)
+```
+
+### Converting the Spatial* class into generic sp format 
+```{r}
+childcare_sp <- as(childcare, "SpatialPoints")
+sg_sp <- as(sg, "SpatialPolygons")
+```
+
+### Converting to ppp format
+x,y co-ordinates in two column form. 
+```{r}
+childcare_ppp <- as(childcare_sp, "ppp")
+childcare_ppp
+```
+
+
