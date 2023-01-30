@@ -138,17 +138,23 @@ top_n(mpsz3414, 1, `Presch Count`)
 ```{r}
 mpsz3414$Area <- mpsz3414 %>%  st_area()
 ```
+
 ```{r}
 mpsz3414 <- mpsz3414 %>%  mutate(`Presch Density` = `Presch Count`/Area * 1000000)
 
 head(mpsz3414$`Presch Density`, 5)
 ```
-## EDA 
+
+## EDA
+
 ### Histogram
+
 Distribution of Presch Density
+
 ```{r}
 hist(mpsz3414$`Presch Density`)
 ```
+
 Customise by using ggplot2 functions
 
 ```{r}
@@ -160,8 +166,11 @@ ggplot(data=mpsz3414,
       x = "Pre-school density (per km sq)",
       y = "Frequency")
 ```
+
 ### Scatter plot
-Relationship between Preschool Density and Preschool Count: 
+
+Relationship between Preschool Density and Preschool Count:
+
 ```{r}
 ggplot(data=mpsz3414, 
        aes(y = `Presch Count`, 

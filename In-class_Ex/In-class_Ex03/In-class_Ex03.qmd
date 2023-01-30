@@ -22,7 +22,7 @@ pacman::p_load(tmap, tidyverse, sf)
 NGA_wp <- read_rds("data/rds/NGA_wp.rds")
 ```
 
-# Basic Choropleth Mapping 
+# Basic Choropleth Mapping
 
 Distribution of non-functional water points by LGA
 
@@ -81,7 +81,7 @@ tm_shape(NGA_wp) +
             legend.outside = TRUE)
 ```
 
-# Extreme Value Maps 
+# Extreme Value Maps
 
 Identify outliers by highlighting extreme values at the lower and upper end of the scale.
 
