@@ -4,6 +4,5 @@ title: "About"
 
 About this site
 
-```{r}
-1 + 1
+```{Learning Geospatial Analytics in 3 months}
 ```
