@@ -2,7 +2,4 @@
 title: "About"
 ---
 
-About this site
-
-```{Learning Geospatial Analytics in 3 months}
-```
+Learning Geospatial Analytics with R in 3 months
