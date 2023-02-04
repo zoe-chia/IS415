@@ -1,5 +1,5 @@
 ---
-title: "In class Exercise 4"
+title: "In class Exercise 4: Ch 4 - 1st Order Spatial Point Paterns Analysis"
 date-modified: "`r Sys.Date()`"
 date: "30 January 2023"
 execute: 

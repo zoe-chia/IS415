@@ -1,0 +1,9 @@
+---
+title: "Hands-on Exercise 4: 2nd Order Spatial Point Patterns Analysis Methods"
+date-modified: "`r Sys.Date()`"
+date: "31 January 2023"
+execute: 
+  message: false
+  warning: false
+editor: visual
+---
