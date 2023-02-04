@@ -29,10 +29,10 @@ website:
         menu: 
           - text: "Take Home Exercise 1"
             href: "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html"
-    right:
-      - href: index.qmd
-        text: Home
-      - about.qmd
+    #right:
+     # - href: index.qmd
+      #  text: Home
+      #- about.qmd
 
 format:
   html:
