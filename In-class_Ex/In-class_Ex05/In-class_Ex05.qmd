@@ -95,6 +95,7 @@ tm_polygons() +
           border.col = "black", 
           border.lwd = 0.5) + 
   tm_view(set.zoom.limits = c(12, 16))
+tmap_mode('plot')
 ```
 
 
