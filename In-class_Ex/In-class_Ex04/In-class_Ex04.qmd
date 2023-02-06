@@ -11,6 +11,7 @@ editor: visual
 ## Importing packages and loading data
 
 ### Loading packages
+
 tmap exposes leaflet
 
 ```{r}
@@ -52,7 +53,9 @@ tm_shape(mpsz_sf)+ tm_polygons() + tm_shape(childcare_sf) + tm_dots()
 ```
 
 **Pin map**
+
 tmap_mode('view') : Interactive map, default
+
 tmap_mode('plot') : Static map
 
 ```{r}
@@ -147,7 +150,8 @@ tm_shape(childcare) +
 tmap_mode('plot')
 ```
 
-::: callout-note appearance = "minimal" How do we identify duplicates?
+::: callout-tip
+## How do we identify duplicates?
 
 -   Remove duplicates, however, this also removes some useful data points.
 
@@ -166,7 +170,8 @@ tmap_mode('plot')
     any(duplicated(childcare_ppp_jit))
     ```
 
--   Make each point unique then attach the duplicates of the points to the patterns as marks, as attributes of the points. :::
+-   Make each point unique then attach the duplicates of the points to the patterns as marks, as attributes of the points.
+:::
 
 ### Creating own object
 
