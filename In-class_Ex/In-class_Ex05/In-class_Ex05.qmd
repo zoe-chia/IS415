@@ -1,0 +1,104 @@
+---
+title: "In-class Ex 5: Advanced Spatial Point Pattern Analysis"
+date-modified: "`r Sys.Date()`"
+date: "6 February 2023"
+execute: 
+  message: false
+  warning: false
+editor: visual
+---
+
+#### Installing packages
+
+sfdep: spatial and spatial time cubes, colocation purposes
+
+```{r}
+pacman::p_load(tidyverse, sf, tmap, sfdep)
+```
+
+#### Importing Data
+Transform to Taiwan's projection System (3829)
+
+```{r}
+studyArea <- st_read(dsn = "data",
+                    layer = "study_area") %>%
+  st_transform(crs = 3829)
+```
+
+```{r}
+stores <- st_read(dsn = "data", 
+                  layer = "stores") %>%
+  st_transform(crs = 3829)
+```
+## Visualising the sf layers 
+```{r}
+tmap_mode('view')
+tm_shape(studyArea) + 
+  tm_polygons() + 
+  tm_shape(stores) + 
+  tm_dots(col = "Name", 
+          size = 0.01, 
+          border.col = "black", 
+          border.lwd = 0.5) + 
+  tm_view(set.zoom.limits = c(12, 16))
+```
+
+## Local Coloation Quotients (LCLQ)
+Calculating nearest neighbour list: 
+```{r}
+nb <- include_self(
+  st_knn(st_geometry(stores), 6))
+# 6 means to search for the 6 nearest neighbours
+# - Adaptive method
+# - Total 7 points (including self) so that you can get a good split. Avoid even splits e.g. 3, 3
+```
+```{r}
+wt <- st_kernel_weights(nb, 
+                        stores, 
+                        "gaussian",
+                        adaptive = TRUE
+                        )
+```
+
+```{r}
+FamilyMart <- stores %>%
+  filter(Name == "Family Mart") # Select stores where name = 'Family Mart', in dataframe form 
+A <- FamilyMart$Name #vector, target
+```
+
+```{r}
+SevenEleven <- stores %>%
+  filter(Name == "7-Eleven")
+B <- SevenEleven$Name
+```
+
+Run 50 simulations: 
+```{r}
+LCLQ <- local_colocation(A, B, nb, wt, 49)
+```
+
+Combine stores and local location table.
+-   Not doing left join / right join because these two layers have no unique identifiers. 
+-   Don't sort data by code
+-   Left hand side should be the geomerty, 'stores'
+```{r}
+LCLQ_stores <- cbind(stores, LCLQ) 
+```
+
+```{r}
+tmap_mode('view')
+tm_shape(studyArea) + 
+tm_polygons() + 
+  tm_shape(LCLQ_stores) + 
+  tm_dots(col = "X7.Eleven", 
+          size = 0.01, 
+          border.col = "black", 
+          border.lwd = 0.5) + 
+  tm_view(set.zoom.limits = c(12, 16))
+```
+
+
+
+
+
+

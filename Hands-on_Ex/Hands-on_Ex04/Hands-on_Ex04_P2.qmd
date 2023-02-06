@@ -216,7 +216,13 @@ plot(childcare_jw_ppp.km, main="Jurong West")
 
 ## Analysing Spatial Point Process using G-Function
 
-Distribution of the distances from an arbitrary event to its nearest event.
+Distribution of the distances from an arbitrary event to its nearest event. (For segmentation)
+
+at 50 simulations: 95% confidence level
+
+at 99 simulations: 99% confidence level
+
+at 999 simulations: 99.9% confidence level
 
 ### Chua Chu Kang
 
@@ -264,7 +270,7 @@ G_tm.csr <- envelope(childcare_tm_ppp, Gest, correction = "all", nsim = 999)
 plot(G_tm.csr)
 ```
 
-## Analysing Spatial Point Process using G-Function
+## Analysing Spatial Point Process using F-Function
 
 ### Chua Chu Kang
 
@@ -369,12 +375,19 @@ L_ck.csr <- envelope(childcare_ck_ppp, Lest, nsim = 99, rank = 1, glocal=TRUE)
 plot(L_ck.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
 ```
 
+-   Fail to reject at the 99% confidence level.
+-   At distance of 480m - 560m between childcare centres (outside the grey envelope): clear evidence of clustering & we are confident to reject the null hypothesis.
+
 ### Tampines
 
 #### L-function
 
+correction: edge correction to extend the boundary slightly to include data points at the edge.
+
+above reference line: clustering is observed.
+
 ```{r}
-L_tm = Lest(childcare_tm_ppp, correction = "Ripley")
+L_tm = Lest(childcare_tm_ppp, correction = "Ripley") #saved as object
 plot(L_tm, . -r ~ r, 
      ylab= "L(d)-r", xlab = "d(m)", 
      xlim=c(0,1000))
