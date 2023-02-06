@@ -11,6 +11,7 @@ editor: visual
 ## Importing packages and loading data
 
 ### Loading packages
+tmap exposes leaflet
 
 ```{r}
 pacman::p_load(maptools, sf, raster, spatstat, tmap)
@@ -51,15 +52,18 @@ tm_shape(mpsz_sf)+ tm_polygons() + tm_shape(childcare_sf) + tm_dots()
 ```
 
 **Pin map**
+tmap_mode('view') : Interactive map, default
+tmap_mode('plot') : Static map
 
 ```{r}
 tmap_mode('view')
 tm_shape(childcare_sf)+
-  tm_dots()
-```
-
-```{r}
-tmap_mode('plot')
+  tm_dots(alph = 0.5, size=0.01) + 
+  tm_view(set.zoom.limits = c(11,15), alpha = 1)
+  tmap_mode('plot')
+  
+# https://r-tmap.github.io/tmap/reference/tm_view.html
+# tm_dots(alph = 0.5, size=0.01)
 ```
 
 ## Geospatial Data Wrangling
@@ -280,12 +284,11 @@ plot(kde_childcareSG.ppl, main = "bw.ppl")
 ```
 
 ### Working with different kernel methods
-The default kernel method used in density.ppp() is gaussian. Other kernel methods: 
--   Epanechnikov
--   Quartic
--   Disc
 
-#### Comparing the different kernel functions 
+The default kernel method used in density.ppp() is gaussian. Other kernel methods: - Epanechnikov - Quartic - Disc
+
+#### Comparing the different kernel functions
+
 ```{r}
 par(mfrow=c(2,2))
 plot(density(childcareSG_ppp.km, 
@@ -309,20 +312,29 @@ plot(density(childcareSG_ppp.km,
              kernel="disc"), 
      main="Disc")
 ```
+
 ## Fixed and Adaptive KDE
-### Computing KDE by using fixed bandwidth 
+
+### Computing KDE by using fixed bandwidth
+
 As the unit of measurement of childcareSG_ppp.km object is in kilometer, 600m is converted to 0.6km. In the code chunk below, we define a bandwidth of 600m, with sigma as 0.6.
+
 ```{r}
 kde_childcareSG_600 <- density(childcareSG_ppp.km, sigma=0.6, edge=TRUE, kernel="gaussian")
 plot(kde_childcareSG_600)
 ```
-### Adaptive Bandwidth 
-Fixed bandwidth is very sensitive to highly skewed distribution of spatial point patterns over geographical units for example urban versus rural. Hence, we use adaptive bandwidth instead. 
+
+### Adaptive Bandwidth
+
+Fixed bandwidth is very sensitive to highly skewed distribution of spatial point patterns over geographical units for example urban versus rural. Hence, we use adaptive bandwidth instead.
+
 ```{r}
 kde_childcareSG_adaptive <- adaptive.density(childcareSG_ppp.km, method="kernel")
 plot(kde_childcareSG_adaptive)
 ```
-Comparing fixed and adpative kernel density estimation: 
+
+Comparing fixed and adpative kernel density estimation:
+
 ```{r}
 par(mfrow=c(1,2))
 plot(kde_childcareSG.bw, main = "Fixed bandwidth")
@@ -330,26 +342,36 @@ plot(kde_childcareSG_adaptive, main = "Adaptive bandwidth")
 ```
 
 ### Converting KDE output into grid object
+
 We convert this so that it is suitable for mapping purposes.
+
 ```{r}
 gridded_kde_childcareSG_bw <- as.SpatialGridDataFrame.im(kde_childcareSG.bw)
 spplot(gridded_kde_childcareSG_bw)
 ```
+
 ### Convert gridded output into raster
-::: callout-note 
-what does raster do 
+
+::: callout-note
+what does raster do
 :::
+
 ```{r}
 kde_childcareSG_bw_raster <- raster(gridded_kde_childcareSG_bw)
 ```
-Study the properties: 
+
+Study the properties:
+
 ```{r}
 kde_childcareSG_bw_raster
 ```
+
 CRS property is NA!
 
 ### Visualising the output in tmap
+
 Display raster in catrtographic quality map
+
 ```{r}
 tm_shape(kde_childcareSG_bw_raster) + 
   tm_raster("v") +
@@ -357,15 +379,20 @@ tm_shape(kde_childcareSG_bw_raster) +
 ```
 
 ### Comparing spatial Point Patterns with KDE
+
 #### Extract the area of study
+
 We will use Punggol, Tampines, Chua Chu Kang and Jurong West planning areas.
+
 ```{r}
 pg = mpsz[mpsz@data$PLN_AREA_N == "PUNGGOL",]
 tm = mpsz[mpsz@data$PLN_AREA_N == "TAMPINES",]
 ck = mpsz[mpsz@data$PLN_AREA_N == "CHOA CHU KANG",]
 jw = mpsz[mpsz@data$PLN_AREA_N == "JURONG WEST",]
 ```
-Plot these areas: 
+
+Plot these areas:
+
 ```{r}
 par(mfrow=c(2,2))
 plot(pg, main = "Ponggol")
@@ -375,35 +402,45 @@ plot(jw, main = "Jurong West")
 ```
 
 #### Convert the spatial point data frame into generic sp format
+
 ```{r}
 pg_sp = as(pg, "SpatialPolygons")
 tm_sp = as(tm, "SpatialPolygons")
 ck_sp = as(ck, "SpatialPolygons")
 jw_sp = as(jw, "SpatialPolygons")
 ```
+
 #### Create owin object
+
 ```{r}
 pg_owin = as(pg_sp, "owin")
 tm_owin = as(tm_sp, "owin")
 ck_owin = as(ck_sp, "owin")
 jw_owin = as(jw_sp, "owin")
 ```
+
 #### Combine childcare points and area of study
-Extract childcare that is within the specific region 
+
+Extract childcare that is within the specific region
+
 ```{r}
 childcare_pg_ppp = childcare_ppp_jit[pg_owin]
 childcare_tm_ppp = childcare_ppp_jit[tm_owin]
 childcare_ck_ppp = childcare_ppp_jit[ck_owin]
 childcare_jw_ppp = childcare_ppp_jit[jw_owin]
 ```
+
 rescale() to transform metre to kilometre:
+
 ```{r}
 childcare_pg_ppp.km = rescale(childcare_pg_ppp, 1000, "km")
 childcare_tm_ppp.km = rescale(childcare_tm_ppp, 1000, "km")
 childcare_ck_ppp.km = rescale(childcare_ck_ppp, 1000, "km")
 childcare_jw_ppp.km = rescale(childcare_jw_ppp, 1000, "km")
 ```
-Plot the study areas and the locations of the childcare centres: 
+
+Plot the study areas and the locations of the childcare centres:
+
 ```{r}
 par(mfrow=c(2,2))
 plot(childcare_pg_ppp.km, main="Punggol")
@@ -411,7 +448,9 @@ plot(childcare_tm_ppp.km, main="Tampines")
 plot(childcare_ck_ppp.km, main="Choa Chu Kang")
 plot(childcare_jw_ppp.km, main="Jurong West")
 ```
+
 #### Compute KDE
+
 ```{r}
 par(mfrow=c(2,2))
 plot(density(childcare_pg_ppp.km, 
@@ -435,8 +474,11 @@ plot(density(childcare_jw_ppp.km,
              kernel="gaussian"),
      main="JUrong West")
 ```
+
 #### Computing fixed bandwidth KDE
-We will use 250m (sigma = 0.25) as the bandwidth. 
+
+We will use 250m (sigma = 0.25) as the bandwidth.
+
 ```{r}
 par(mfrow=c(2,2))
 plot(density(childcare_ck_ppp.km, 
@@ -462,6 +504,7 @@ plot(density(childcare_tm_ppp.km,
 ```
 
 ## Nearest Neighbour Analysis
+
 The test hypotheses are:
 
 Ho = The distribution of childcare services are randomly distributed.
@@ -470,7 +513,8 @@ H1= The distribution of childcare services are not randomly distributed.
 
 The 95% confident interval will be used.
 
-### Clark and Evans Test 
+### Clark and Evans Test
+
 ```{r}
 clarkevans.test(childcareSG_ppp,
                 correction="none",
@@ -478,10 +522,13 @@ clarkevans.test(childcareSG_ppp,
                 alternative=c("clustered"),
                 nsim=99)
 ```
-Conclusion: 
+
+Conclusion:
 
 ### Clark and Evan Test: Tampines planning area
-Analysethe spatial point patterns of childcare centres in Tampines: 
+
+Analysethe spatial point patterns of childcare centres in Tampines:
+
 ```{r}
 clarkevans.test(childcare_tm_ppp,
                 correction="none",
@@ -489,7 +536,3 @@ clarkevans.test(childcare_tm_ppp,
                 alternative=c("two.sided"),
                 nsim=999)
 ```
-
-
-
- 
