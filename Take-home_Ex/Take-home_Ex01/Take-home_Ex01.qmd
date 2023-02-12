@@ -502,17 +502,19 @@ With the p-value of 0.02 being less than the critical level of 0.05, we should r
 
 # Analysing Spatial Point Process Using L-Function
 
-## Computing L Function Estimation
+## All water points
+
+### L Function Estimation
 
 ```{r}
-#L_ck = Lest(osun_ppp, correction = "Ripley")
+#L_wp = Lest(osun_ppp, correction = "Ripley")
 ```
 
 ```{r}
-#plot(L_ck, . -r ~ r, ylab= "L(d)-r", xlab = "d(m)")
+#plot(L_wp, . -r ~ r, ylab= "L(d)-r", xlab = "d(m)")
 ```
 
-## Complete Spatial Randomness Test
+### Complete Spatial Randomness Test
 
 To confirm the observed spatial patterns above, a hypothesis test will be conducted. The hypothesis and test are as follows:
 
@@ -525,11 +527,55 @@ The null hypothesis will be rejected if p-value if smaller than alpha value of 0
 The code chunk below is used to perform the hypothesis testing at the 95% confidence level.
 
 ```{r}
-#L_ck.csr <- envelope(osun_pp, Lest, nsim = 39, rank = 1, glocal=TRUE)
+#L_wp.csr <- envelope(osun_ppp, Lest, nsim = 39, rank = 1, glocal=TRUE)
 ```
 
 ```{r}
-#plot(L_ck.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
+#plot(L_wp.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
+```
+
+## Functional WP
+
+### L Function Estimation
+
+```{r}
+L_ck = Lest(functional_osun_owin_ppp, correction = "Ripley")
+```
+
+```{r}
+plot(L_ck, . -r ~ r, ylab= "L(d)-r", xlab = "d(m)")
+```
+
+### Complete Spatial Randomness Test 
+
+```{r}
+L_ck.csr <- envelope(functional_osun_owin_ppp, Lest, nsim = 39, rank = 1, glocal=TRUE)
+```
+
+```{r}
+plot(L_ck.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
+```
+
+## Non-Functional WP
+
+### L Function Estimation
+
+```{r}
+L_nonfwp = Lest(nonfunctional_osun_owin_ppp, correction = "Ripley")
+```
+
+```{r}
+plot(L_nonfwp, . -r ~ r, ylab= "L(d)-r", xlab = "d(m)")
+```
+
+### Complete Spatial Randomness Test
+
+```{r}
+L_nonfwp.csr <- envelope(functional_osun_owin_ppp, Lest, nsim = 39, rank = 1, glocal=TRUE)
+```
+
+```{r}
+plot(L_nonfwp.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
 ```
 
 # Local Colocation Quotients
