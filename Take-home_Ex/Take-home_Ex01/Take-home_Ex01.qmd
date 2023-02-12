@@ -531,7 +531,7 @@ The code chunk below is used to perform the hypothesis testing at the 95% confid
 ```
 
 ```{r}
-#plot(L_wp.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
+# plot(L_wp.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
 ```
 
 ## Functional WP
@@ -539,21 +539,21 @@ The code chunk below is used to perform the hypothesis testing at the 95% confid
 ### L Function Estimation
 
 ```{r}
-L_ck = Lest(functional_osun_owin_ppp, correction = "Ripley")
+# L_ck = Lest(functional_osun_owin_ppp, correction = "Ripley")
 ```
 
 ```{r}
-plot(L_ck, . -r ~ r, ylab= "L(d)-r", xlab = "d(m)")
+# plot(L_ck, . -r ~ r, ylab= "L(d)-r", xlab = "d(m)")
 ```
 
-### Complete Spatial Randomness Test 
+### Complete Spatial Randomness Test
 
 ```{r}
-L_ck.csr <- envelope(functional_osun_owin_ppp, Lest, nsim = 39, rank = 1, glocal=TRUE)
+# L_ck.csr <- envelope(functional_osun_owin_ppp, Lest, nsim = 39, rank = 1, glocal=TRUE)
 ```
 
 ```{r}
-plot(L_ck.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
+# plot(L_ck.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
 ```
 
 ## Non-Functional WP
@@ -561,22 +561,30 @@ plot(L_ck.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
 ### L Function Estimation
 
 ```{r}
-L_nonfwp = Lest(nonfunctional_osun_owin_ppp, correction = "Ripley")
+# L_nonfwp = Lest(nonfunctional_osun_owin_ppp, correction = "Ripley")
 ```
 
 ```{r}
-plot(L_nonfwp, . -r ~ r, ylab= "L(d)-r", xlab = "d(m)")
+# plot(L_nonfwp, . -r ~ r, ylab= "L(d)-r", xlab = "d(m)")
 ```
 
 ### Complete Spatial Randomness Test
 
 ```{r}
-L_nonfwp.csr <- envelope(functional_osun_owin_ppp, Lest, nsim = 39, rank = 1, glocal=TRUE)
+# L_nonfwp.csr <- envelope(functional_osun_owin_ppp, Lest, nsim = 39, rank = 1, glocal=TRUE)
 ```
 
 ```{r}
-plot(L_nonfwp.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
+# plot(L_nonfwp.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
 ```
+
+::: callout-important
+#### Unable to run L Function
+
+I was unable to run the L function in time, but I will update this section with another desktop and input the results here.
+
+![](images/image-1099419552.png){width="645"}
+:::
 
 # Local Colocation Quotients
 
