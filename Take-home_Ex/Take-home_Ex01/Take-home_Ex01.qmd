@@ -484,7 +484,9 @@ Ho = The distribution of water points are randomly distributed.
 
 H1 = The distribution of water points are not randomly distributed.
 
-The 95% confident interval will be used. \## Clark and Evans Test
+The 95% confident interval will be used.
+
+## Clark and Evans Test
 
 ```{r}
 clarkevans.test(osun_ppp,
@@ -599,7 +601,7 @@ tm_shape(osun_wp_sf_nga)+
              size = 0.01,
              border.col = "black",
              border.lwd = 0.5) +
-  tm_view(set.zoom.limits = c(8, 10))
+  tm_view(set.zoom.limits = c(9, 10))
 tmap_mode("plot")
 ```
 
@@ -630,7 +632,7 @@ NonFunctional <- osun_wp_sf_nga %>%
 B <- NonFunctional$new_status
 ```
 
-Run 50 simulations;
+Run 50 simulations:
 
 ```{r}
 LCLQ <- local_colocation (target, B, nb, wt, 49)
@@ -651,7 +653,7 @@ tm_polygons() +
           size = 0.01, 
           border.col = "black", 
           border.lwd = 0.5) + 
-  tm_view(set.zoom.limits = c(8, 12))
+  tm_view(set.zoom.limits = c(9, 12))
 tmap_mode('plot')
 ```
 

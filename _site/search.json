@@ -410,7 +410,7 @@
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#visualising-the-sf-layers",
     "title": "Take Home Exercise 1",
     "section": "Visualising the sf layers",
-    "text": "Visualising the sf layers\n\ntmap_mode(\"view\")\ntm_shape(NGA_wp) +\n  tm_polygons() +\ntm_shape(osun_wp_sf_nga)+ \n  tm_dots(col = \"new_status\",\n             size = 0.01,\n             border.col = \"black\",\n             border.lwd = 0.5) +\n  tm_view(set.zoom.limits = c(8, 10))\n\n\n\n\n\ntmap_mode(\"plot\")"
+    "text": "Visualising the sf layers\n\ntmap_mode(\"view\")\ntm_shape(NGA_wp) +\n  tm_polygons() +\ntm_shape(osun_wp_sf_nga)+ \n  tm_dots(col = \"new_status\",\n             size = 0.01,\n             border.col = \"black\",\n             border.lwd = 0.5) +\n  tm_view(set.zoom.limits = c(9, 10))\n\n\n\n\n\ntmap_mode(\"plot\")"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#preparing-nearest-neighbours-list",
@@ -431,7 +431,7 @@
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#preparing-the-vector-list",
     "title": "Take Home Exercise 1",
     "section": "Preparing the vector list",
-    "text": "Preparing the vector list\n\nFunctional <- osun_wp_sf_nga %>%\n  filter(new_status == \"Functional\")\ntarget <- Functional$new_status\n\n\nNonFunctional <- osun_wp_sf_nga %>%\n  filter(new_status == \"Non-Functional\")\nB <- NonFunctional$new_status\n\nRun 50 simulations;\n\nLCLQ <- local_colocation (target, B, nb, wt, 49)\n\nCombine waterpoint and local location table\n\nLCLQ_wp <-cbind(osun_wp_sf_nga, LCLQ)\n\n\ntmap_mode('view')\ntm_shape(NGA_wp) + \ntm_polygons() + \n  tm_shape(LCLQ_wp) + \n  tm_dots(col = \"Non.Functional\", \n          size = 0.01, \n          border.col = \"black\", \n          border.lwd = 0.5) + \n  tm_view(set.zoom.limits = c(8, 12))\n\n\n\n\n\ntmap_mode('plot')\n\n\n\n\n\n\n\nConclusions\n\n\n\nFrom the results above, we can see that there are many missing, or undefined LCLQ types. This means that the functional water points do not have other features within its neighbourhood, and hence do not have any correlation and are independent from each other."
+    "text": "Preparing the vector list\n\nFunctional <- osun_wp_sf_nga %>%\n  filter(new_status == \"Functional\")\ntarget <- Functional$new_status\n\n\nNonFunctional <- osun_wp_sf_nga %>%\n  filter(new_status == \"Non-Functional\")\nB <- NonFunctional$new_status\n\nRun 50 simulations:\n\nLCLQ <- local_colocation (target, B, nb, wt, 49)\n\nCombine waterpoint and local location table\n\nLCLQ_wp <-cbind(osun_wp_sf_nga, LCLQ)\n\n\ntmap_mode('view')\ntm_shape(NGA_wp) + \ntm_polygons() + \n  tm_shape(LCLQ_wp) + \n  tm_dots(col = \"Non.Functional\", \n          size = 0.01, \n          border.col = \"black\", \n          border.lwd = 0.5) + \n  tm_view(set.zoom.limits = c(9, 12))\n\n\n\n\n\ntmap_mode('plot')\n\n\n\n\n\n\n\nConclusions\n\n\n\nFrom the results above, we can see that there are many missing, or undefined LCLQ types. This means that the functional water points do not have other features within its neighbourhood, and hence do not have any correlation and are independent from each other."
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#all-water-points",
@@ -453,5 +453,12 @@
     "title": "Take Home Exercise 1",
     "section": "Non-Functional WP",
     "text": "Non-Functional WP\n\nL Function Estimation\n\n# L_nonfwp = Lest(nonfunctional_osun_owin_ppp, correction = \"Ripley\")\n\n\n# plot(L_nonfwp, . -r ~ r, ylab= \"L(d)-r\", xlab = \"d(m)\")\n\n\n\nComplete Spatial Randomness Test\n\n# L_nonfwp.csr <- envelope(functional_osun_owin_ppp, Lest, nsim = 39, rank = 1, glocal=TRUE)\n\n\n# plot(L_nonfwp.csr, . - r ~ r, xlab=\"d\", ylab=\"L(d)-r\")\n\n\n\n\n\n\n\nUnable to run L Function\n\n\n\nI was unable to run the L function in time, but I will update this section with another desktop and input the results here."
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#clark-and-evans-test",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#clark-and-evans-test",
+    "title": "Take Home Exercise 1",
+    "section": "Clark and Evans Test",
+    "text": "Clark and Evans Test\n\nclarkevans.test(osun_ppp,\n                correction=\"none\",\n                clipregion=\"osun_owin\", \n                alternative=c(\"two.sided\"),\n                nsim=99)\n\n\n    Clark-Evans test\n    No edge correction\n    Monte Carlo test based on 99 simulations of CSR with fixed n\n\ndata:  osun_ppp\nR = 0.40209, p-value = 0.02\nalternative hypothesis: two-sided\n\n\n\n\n\n\n\n\nConclusions\n\n\n\nWith the p-value of 0.02 being less than the critical level of 0.05, we should reject the null hypothesis and conclude that the distribution of water points is not random."
   }
 ]
