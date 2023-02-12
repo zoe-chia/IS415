@@ -8,3 +8,601 @@ execute:
   warning: false
 editor: visual
 ---
+
+In this exercise, we want to:
+
+-   Conduct spatial point pattern analysis to discover the geographical distribution of functional and non-functional water points and their co-locations in Nigeria.
+
+# Setup
+
+## Loading Packages
+
+```{r}
+pacman::p_load(sf, funModeling, maptools, raster, spatstat, tmap, tidyverse, sfdep)
+```
+
+## Importing Data
+
+### Geospatial Data
+
+```{r}
+NGA <- st_read("data/geospatial", layer = "nga_admbnda_adm2_osgof_20190417")%>%
+  st_transform(crs = 26392) 
+```
+
+### Aspatial Data
+
+#### Waterpoint Dataset
+
+```{r}
+osun_wp_nga <- read_csv("data/aspatial/WPdx.csv") %>%
+  filter(`#clean_country_name` == "Nigeria", 
+         `#clean_adm1` == "Osun")
+```
+
+# Data Handling
+
+We want to combine our waterpoint aspatial data with our geospatial data. First, we have to give aspatial data its spatial properties. Then, we will clean our data before combining them with intersects().
+
+## Aspatial waterpoint data
+
+### Converting water point data into sf point features
+
+Aspatial data does not have spatial properties. Hence, to turn it into geospatial data, we need to (i) convert it into the appropriate data type and (ii) add projection information (iii) transform to the respective coordinate system:
+
+(1) Convert the wkt field into sfc field by using st_as_sfc() data type.
+
+```{r}
+osun_wp_nga$Geometry = st_as_sfc(osun_wp_nga$`New Georeferenced Column`)
+osun_wp_nga
+```
+
+(2) Convert tibble dataframe into an sf object using st_sf(). It is also important for us to include the referencing system of the data into the sf object. Data in wp_nga is in decimals, and in tibble form. It does not have the projection information. We need to put back its original projection inform (WGS84).
+
+```{r}
+osun_wp_sf <- st_sf(osun_wp_nga, crs = 4326)
+osun_wp_sf
+```
+
+(3) Transform to Nigeria's projected coordinate system
+
+```{r}
+osun_wp_sf <- osun_wp_sf %>%
+  st_transform(crs = 26392)
+```
+
+### Data Wrangling for Water Point Data
+
+#### Get status_clean column
+
+Rename '#status_clean' column and replace NA with 'unknown'.
+
+```{r}
+osun_wp_sf_nga <- osun_wp_sf %>%
+  dplyr::rename(status_clean = '#status_clean') %>%
+  dplyr::select(status_clean) %>%
+  dplyr::mutate(status_clean = replace_na(
+    status_clean, "unknown"
+  ))
+```
+
+#### Visualise status_clean column
+
+```{r}
+funModeling::freq(data = osun_wp_sf_nga, 
+     input = 'status_clean')
+```
+
+##### Group data by filter() to obtain functional, non-functional and unknown statuses
+
+```{r}
+wp_functional <- osun_wp_sf_nga %>% 
+  filter(status_clean %in% 
+           c("Functional",
+             "Functional but not in use", 
+             "Functional but needs repair", 
+             "Functional, needs repair"))
+
+
+wp_nonfunctional <- osun_wp_sf_nga %>% 
+  filter(status_clean %in%
+           c("Abandoned/Decommissioned",
+             "Abandoned",
+             "Non-Functional due to dry season", 
+             "Non-Functional",
+             "Non functional due to dry season", 
+             "Non-Functional, dry"))
+
+wp_unknown <- osun_wp_sf_nga %>% 
+  filter(status_clean == "unknown")
+```
+
+```{r}
+funModeling::freq(data = wp_functional, 
+     input = 'status_clean')
+```
+
+#### Add a new column to categorise water points' functionality
+
+```{r}
+osun_wp_sf_nga$new_status <- NA
+osun_wp_sf_nga$new_status[osun_wp_sf_nga$status_clean %in% c("Functional",
+             "Functional, not in use", 
+             "Functional but not in use",
+             "Functional but needs repair",
+             "Functional, needs repair")] <- "Functional"
+osun_wp_sf_nga$new_status[osun_wp_sf_nga$status_clean %in%
+           c("Abandoned/Decommissioned",
+             "Abandoned",
+             "Non-Functional due to dry season", 
+             "Non-Functional",
+             "Non functional due to dry season", 
+             "Non-Functional, dry")] <- "Non-Functional"
+osun_wp_sf_nga$new_status[osun_wp_sf_nga$status_clean %in% c("unknown", "NA")] <- "Unknown"
+
+```
+
+```{r}
+funModeling::freq(data = osun_wp_sf_nga, 
+     input = 'new_status')
+```
+
+## Geospatial Data
+
+### Get Study Area, Osun State
+
+```{r}
+NGA <- NGA %>% 
+  filter(`ADM1_EN` == "Osun")
+```
+
+### Check for duplicates
+
+```{r}
+NGA$ADM2_EN[duplicated(NGA$ADM2_EN)==TRUE]
+```
+
+There are no duplicates.
+
+### Point in Polygon Count
+
+To find out the number of total, functional, nonfunctional and unknown water points.
+
+```{r}
+NGA_wp <- NGA %>% 
+  mutate(`total_wp` = lengths(
+    st_intersects(NGA, osun_wp_sf_nga))) %>%
+  mutate(`wp_functional` = lengths(
+    st_intersects(NGA, wp_functional))) %>%
+  mutate(`wp_nonfunctional` = lengths(
+    st_intersects(NGA, wp_nonfunctional))) %>%
+  mutate(`wp_unknown` = lengths(
+    st_intersects(NGA, wp_unknown)))
+```
+
+#### Visualising
+
+```{r}
+ggplot(data = NGA_wp,
+       aes(x = total_wp)) + 
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue") +
+  geom_vline(aes(xintercept=mean(
+    total_wp, na.rm=T)),
+             color="red", 
+             linetype="dashed", 
+             size=0.8) +
+  ggtitle("Distribution of total water points by LGA") +
+  xlab("No. of water points") +
+  ylab("No. of\nLGAs") +
+  theme(axis.title.y=element_text(angle = 0))
+```
+
+## Save data in rds format
+
+```{r}
+write_rds(NGA_wp, "data/rds/NGA_wp.rds")
+```
+
+## Import the saved data in rds
+
+```{r}
+NGA_wp <- read_rds("data/rds/NGA_wp.rds")
+```
+
+# Exploratory Data Analysis
+
+## Visualising Distribution of Water Points with Choropleth Maps
+
+```{r}
+p1 <- tm_basemap(server="OpenStreetMap") + 
+  tm_shape(NGA_wp) +
+  tm_fill("wp_functional",
+          n = 10,
+          style = "equal",
+          palette = "Blues") +
+  tm_borders(lwd = 0.1,
+             alpha = 1) +
+  tm_layout(main.title = "Distribution of functional water point by cities",
+            legend.outside = FALSE,
+            main.title.size = 1) + 
+  tm_view(set.zoom.limits = c(8, 10))
+```
+
+```{r}
+p2 <- tm_basemap(server="OpenStreetMap") +
+  tm_shape(NGA_wp) +
+  tm_fill("wp_nonfunctional",
+          n = 10,
+          style = "equal",
+          palette = "Blues") +
+  tm_borders(lwd = 0.1,
+             alpha = 1) +
+  tm_layout(main.title = "Distribution of non-functional water point by cities",
+            legend.outside = FALSE,
+            main.title.size = 1) + 
+  tm_view(set.zoom.limits = c(8, 10))
+```
+
+```{r}
+tmap_mode('view')
+tmap_arrange(p1, p2, nrow = 1, widths = c(0.5, 0.5))
+tmap_mode('plot')
+```
+
+```{r}
+tmap_mode('view')
+tm_basemap(server="OpenStreetMap")+
+tm_shape(NGA) + 
+  tm_polygons() + 
+  tm_shape(wp_functional) + 
+  tm_dots(size = 0.01, 
+          col = "yellow", 
+          border.lwd = 0.5, 
+          legend.show = TRUE
+          ) + 
+  tm_layout(legend.outside = FALSE) + 
+  tm_shape(wp_nonfunctional) + 
+  tm_dots(col="turquoise",
+    size = 0.01, 
+          border.col = "red", 
+          border.lwd = 0.5,
+    legend.show = TRUE) +
+  tm_layout(legend.outside = FALSE)+
+  tm_view(set.zoom.limits = c(9, 12))
+tmap_mode('plot')
+```
+
+## Converting sf data frames to sp's Spatial\* class
+
+```{r}
+osun_wp_spdf <- as_Spatial(osun_wp_sf) 
+osun_wp_nga_spdf <- as_Spatial(NGA_wp)
+```
+
+```{r}
+osun_wp_spdf
+```
+
+```{r}
+osun_wp_nga_spdf
+```
+
+### Converting the Spatial\* class into generic sp format
+
+```{r}
+osun_wp_sp <- as(osun_wp_spdf, "SpatialPoints")
+osun_wp_nga_sp <- as(osun_wp_nga_spdf, "SpatialPolygons")
+```
+
+### Converting to PPP format
+
+```{r}
+osun_wp_ppp <- as(osun_wp_sp, "ppp")
+```
+
+### Converting non-functional and functional water points from sf format to ppp format
+
+```{r}
+osun_functional_spdf <- as_Spatial(wp_functional)
+osun_functional_sp <- as(osun_functional_spdf, "SpatialPoints")
+osun_functional_ppp <- as(osun_functional_sp, "ppp")
+
+osun_nonfunctional_spdf <- as_Spatial(wp_nonfunctional)
+osun_nonfunctional_sp <- as(osun_nonfunctional_spdf, "SpatialPoints")
+osun_nonfunctional_ppp <- as(osun_nonfunctional_sp, "ppp")
+```
+
+```{r}
+par(mfrow=c(1,3))
+plot(osun_wp_ppp, main = "Osun Waterpoints (PPP)")
+plot(osun_functional_ppp, main = "Functional Waterpoints (PPP)")
+plot(osun_nonfunctional_ppp, main = "Non-Functional Waterpoints (PPP)")
+```
+
+### Check for duplicated points
+
+```{r}
+any(duplicated(osun_wp_ppp))
+```
+
+## Create owin object
+
+```{r}
+osun_owin <- as(osun_wp_nga_sp, "owin")
+plot(osun_owin, main = "Osun")
+```
+
+### Combining point events object and owin object
+
+```{r}
+osun_ppp = osun_wp_ppp[osun_owin]
+functional_osun_owin_ppp = osun_functional_ppp[osun_owin]
+nonfunctional_osun_owin_ppp = osun_nonfunctional_ppp[osun_owin]
+```
+
+### Transforming unit measurements from metre to kilometre
+
+```{r}
+osun_ppp.km = rescale(osun_ppp, 1000, "km")
+functional_osun_owin_ppp.km = rescale(functional_osun_owin_ppp, 1000, "km")
+nonfunctional_osun_owin_ppp.km = rescale(nonfunctional_osun_owin_ppp, 1000, "km")
+```
+
+```{r}
+par(mfrow=c(1,3))
+plot(osun_ppp, main = "Osun PPP")
+plot(functional_osun_owin_ppp, main = "Functional WP PPP")
+plot(nonfunctional_osun_owin_ppp, main = "Non-Functional WP PPP")
+```
+
+# Kernel Density Estimation (KDE)
+
+## Computing KDE of waterpoints in Osun using automatic and fixed bandwidth selection method
+
+Adaptive bandwidth
+
+```{r}
+kde_osunwp_abw <- density(osun_ppp.km,
+                         sigma = bw.diggle,
+                         edge = TRUE, 
+                         kernel = "gaussian")
+
+kde_functional_abw <- density(functional_osun_owin_ppp.km,
+                              sigma = bw.diggle,
+                              edge = TRUE, 
+                              kernel = "gaussian")
+
+kde_nonfunctional_abw <- density(nonfunctional_osun_owin_ppp.km,
+                              sigma = bw.diggle,
+                              edge = TRUE, 
+                              kernel = "gaussian")
+```
+
+```{r}
+kde_osunwp_abw
+```
+
+Fixed Bandwidth
+
+```{r}
+kde_osunwp_fbw <- density(osun_ppp.km,
+             sigma = 0.6, 
+             edge = TRUE, 
+             kernel = "gaussian")
+
+kde_functional_fbw <- density(functional_osun_owin_ppp.km,
+                              sigma = 0.6,
+                              edge = TRUE, 
+                              kernel = "gaussian")
+
+kde_nonfunctional_fbw <- density(functional_osun_owin_ppp.km,
+                              sigma = 0.6,
+                              edge = TRUE, 
+                              kernel = "gaussian")
+```
+
+Comparing Fixed and Adaptive KDEs:
+
+```{r}
+par(mfrow=c(3,2))
+plot(kde_osunwp_abw, main = "Total WP KDE Adaptive Bandwidth")
+plot(kde_osunwp_fbw, main = "Total WP KDE Fixed Bandwidth")
+plot(kde_functional_abw, main = "Functional WP KDE Adaptive Bandwidth")
+plot(kde_functional_fbw, main = "Functional WP KDE Fixed Bandwidth")
+plot(kde_nonfunctional_abw, main = "Non-Functional WP KDE Adaptive Bandwidth")
+plot(kde_nonfunctional_fbw, main = "Non-Functional WP KDE Fixed Bandwidth")
+```
+
+### Converting KDE Output into grid and raster object
+
+For mapping purposes:
+
+```{r}
+# Total WPs 
+gridded_kde_osunwp_fbw <- as.SpatialGridDataFrame.im(kde_osunwp_fbw)
+kde_osunwp_fbw_raster <- raster(gridded_kde_osunwp_fbw)
+
+# Functional WPs
+gridded_kde_functional_fbw <- as.SpatialGridDataFrame.im(kde_functional_fbw)
+kde_functional_fbw_raster <- raster(gridded_kde_functional_fbw)
+
+#Non-Functional WPs
+gridded_kde_nonfunctional_fbw <- as.SpatialGridDataFrame.im(kde_nonfunctional_fbw)
+kde_nonfunctional_fbw_raster <- raster(gridded_kde_nonfunctional_fbw)
+```
+
+Plot KDE in OpenStreeMap
+
+```{r}
+tmap_mode("view")
+# Total WP
+totalwpraster <- tm_shape(kde_osunwp_fbw_raster) + 
+  tm_basemap(server="OpenStreetMap") + 
+  tm_raster("v") +
+  tm_layout(legend.position = c("right", "bottom"), frame = FALSE, title = "Total WP Raster")+
+  tm_view(set.zoom.limits = c(18,20))
+
+# Functional WP
+functional_raster <- tm_shape(kde_functional_fbw_raster) + 
+  tm_basemap(server="OpenStreetMap") + 
+  tm_raster("v") +
+  tm_layout(legend.position = c("right", "bottom"), frame = FALSE, title = "Functional WP Raster")+
+  tm_view(set.zoom.limits = c(18,20))
+
+# Non-Functional WP
+nonfunctional_raster <- tm_shape(kde_nonfunctional_fbw_raster) +
+  tm_basemap(server="OpenStreetMap") + 
+  tm_raster("v") +
+  tm_layout(legend.position = c("right", "bottom"), frame = FALSE, title = "Non-Functional WP Raster")+
+  tm_view(set.zoom.limits = c(18,20))
+```
+
+```{r}
+tmap_arrange(totalwpraster, functional_raster, nonfunctional_raster, nrow = 1)
+tmap_mode('plot')
+```
+
+::: callout-note
+#### Conclusions
+
+**Spatial Pattern Observations**
+
+There seems to be very slight clustering for the functional and non-functional water points. From the Kernel Density maps, they seem to be clustered around the same areas. However, overall, they seem to be randomly distributed.
+
+**Advantage of Kernel Density Map over Point Map**
+
+Kernel Density map smooths out noise and highlights any clusters that may be present. It shows us the separation between feature and noise points. However, the point map shows us all points including noise which may be difficult to identify clear clusters.
+:::
+
+# Nearest Neighbour Analysis
+
+The test hypotheses are:
+
+Ho = The distribution of water points are randomly distributed.
+
+H1 = The distribution of water points are not randomly distributed.
+
+The 95% confident interval will be used. \## Clark and Evans Test
+
+```{r}
+clarkevans.test(osun_ppp,
+                correction="none",
+                clipregion="osun_owin", 
+                alternative=c("two.sided"),
+                nsim=99)
+```
+
+::: callout-note
+#### Conclusions
+
+With the p-value of 0.02 being less than the critical level of 0.05, we should reject the null hypothesis and conclude that the distribution of water points is not random.
+:::
+
+# Analysing Spatial Point Process Using L-Function
+
+## Computing L Function Estimation
+
+```{r}
+#L_ck = Lest(osun_ppp, correction = "Ripley")
+```
+
+```{r}
+#plot(L_ck, . -r ~ r, ylab= "L(d)-r", xlab = "d(m)")
+```
+
+## Complete Spatial Randomness Test
+
+To confirm the observed spatial patterns above, a hypothesis test will be conducted. The hypothesis and test are as follows:
+
+Ho = The distribution of water points at Osun State are randomly distributed.
+
+H1 = The distribution of water points at Osun State are not randomly distributed.
+
+The null hypothesis will be rejected if p-value if smaller than alpha value of 0.05.
+
+The code chunk below is used to perform the hypothesis testing at the 95% confidence level.
+
+```{r}
+#L_ck.csr <- envelope(osun_pp, Lest, nsim = 39, rank = 1, glocal=TRUE)
+```
+
+```{r}
+#plot(L_ck.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
+```
+
+# Local Colocation Quotients
+
+## Visualising the sf layers
+
+```{r}
+tmap_mode("view")
+tm_shape(NGA_wp) +
+  tm_polygons() +
+tm_shape(osun_wp_sf_nga)+ 
+  tm_dots(col = "new_status",
+             size = 0.01,
+             border.col = "black",
+             border.lwd = 0.5) +
+  tm_view(set.zoom.limits = c(8, 10))
+tmap_mode("plot")
+```
+
+## Preparing nearest neighbours list
+
+```{r}
+nb <- include_self(
+  st_knn(st_geometry(osun_wp_sf_nga), 6))
+```
+
+## Compute kernel weights
+
+```{r}
+wt <- st_kernel_weights(nb, osun_wp_sf_nga, "gaussian", adaptive= TRUE)
+```
+
+## Preparing the vector list
+
+```{r}
+Functional <- osun_wp_sf_nga %>%
+  filter(new_status == "Functional")
+target <- Functional$new_status
+```
+
+```{r}
+NonFunctional <- osun_wp_sf_nga %>%
+  filter(new_status == "Non-Functional")
+B <- NonFunctional$new_status
+```
+
+Run 50 simulations;
+
+```{r}
+LCLQ <- local_colocation (target, B, nb, wt, 49)
+```
+
+Combine waterpoint and local location table
+
+```{r}
+LCLQ_wp <-cbind(osun_wp_sf_nga, LCLQ)
+```
+
+```{r}
+tmap_mode('view')
+tm_shape(NGA_wp) + 
+tm_polygons() + 
+  tm_shape(LCLQ_wp) + 
+  tm_dots(col = "Non.Functional", 
+          size = 0.01, 
+          border.col = "black", 
+          border.lwd = 0.5) + 
+  tm_view(set.zoom.limits = c(8, 12))
+tmap_mode('plot')
+```
+
+::: callout-note
+#### Conclusions
+
+From the results above, we can see that there are many missing, or undefined LCLQ types. This means that the functional water points do not have other features within its neighbourhood, and hence do not have any correlation and are independent from each other.
+:::
