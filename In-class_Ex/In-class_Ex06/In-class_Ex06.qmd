@@ -1,0 +1,16 @@
+---
+title: "In Class Ex 6: Spatial Weights"
+date-modified: "`r Sys.Date()`"
+date: "13 February 2023"
+execute: 
+  message: false
+  warning: false
+editor: visual
+---
+
+## Installing and loading R packages
+```{r}
+pacman::p_load(sf, tmap, sedep, tidyverse)
+```
+
+# The Data 
