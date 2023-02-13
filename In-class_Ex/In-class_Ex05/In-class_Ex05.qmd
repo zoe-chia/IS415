@@ -17,6 +17,7 @@ pacman::p_load(tidyverse, sf, tmap, sfdep)
 ```
 
 #### Importing Data
+
 Transform to Taiwan's projection System (3829)
 
 ```{r}
@@ -30,7 +31,9 @@ stores <- st_read(dsn = "data",
                   layer = "stores") %>%
   st_transform(crs = 3829)
 ```
-## Visualising the sf layers 
+
+## Visualising the sf layers
+
 ```{r}
 tmap_mode('view')
 tm_shape(studyArea) + 
@@ -44,7 +47,9 @@ tm_shape(studyArea) +
 ```
 
 ## Local Coloation Quotients (LCLQ)
-Calculating nearest neighbour list: 
+
+Calculating nearest neighbour list:
+
 ```{r}
 nb <- include_self(
   st_knn(st_geometry(stores), 6))
@@ -52,6 +57,7 @@ nb <- include_self(
 # - Adaptive method
 # - Total 7 points (including self) so that you can get a good split. Avoid even splits e.g. 3, 3
 ```
+
 ```{r}
 wt <- st_kernel_weights(nb, 
                         stores, 
@@ -72,15 +78,14 @@ SevenEleven <- stores %>%
 B <- SevenEleven$Name
 ```
 
-Run 50 simulations: 
+Run 50 simulations:
+
 ```{r}
 LCLQ <- local_colocation(A, B, nb, wt, 49)
 ```
 
-Combine stores and local location table.
--   Not doing left join / right join because these two layers have no unique identifiers. 
--   Don't sort data by code
--   Left hand side should be the geomerty, 'stores'
+Combine stores and local location table. - Not doing left join / right join because these two layers have no unique identifiers. - Don't sort data by code - Left hand side should be the geomerty, 'stores'
+
 ```{r}
 LCLQ_stores <- cbind(stores, LCLQ) 
 ```
@@ -97,9 +102,3 @@ tm_polygons() +
   tm_view(set.zoom.limits = c(12, 16))
 tmap_mode('plot')
 ```
-
-
-
-
-
-
