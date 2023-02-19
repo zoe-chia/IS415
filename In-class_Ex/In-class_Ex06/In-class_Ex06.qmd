@@ -103,12 +103,16 @@ cn_rook <- hunan_GDPPC %>%
          .before = 1)
 ```
 
-We now know it's neighbours. 
+We now know it's neighbours.
 
 # K-Nearest Neighbours
+
 ## Computing contiguity weights
+
 ### Distance based method
+
 Contiguity weights: Queen's Method
+
 ```{r}
 wm_q <- hunan_GDPPC %>%
   mutate(nb = st_contiguity(geometry),
@@ -116,7 +120,8 @@ wm_q <- hunan_GDPPC %>%
          .before = 1)
 ```
 
-Contiguity weights: Rook's Method 
+Contiguity weights: Rook's Method
+
 ```{r}
 wm_r <- hunan_GDPPC %>%
   mutate(nb = st_contiguity(geometry, queen = FALSE),
@@ -125,5 +130,3 @@ wm_r <- hunan_GDPPC %>%
 ```
 
 `st_dist_band()` lower limit always has to be 0
-
-

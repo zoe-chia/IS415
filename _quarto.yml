@@ -16,7 +16,14 @@ website:
           - text: "Hands-on 4: 2nd Order Spatial Point Patterns Analysis"
             href: "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04_P2.html"
           - text: "Hands-on 5: Spatial Weights and Applications"
+            href: "Hands-on_Ex/Hands-on_Ex05/Hands-on_Ex05.html"
+          - text: "Hands-on 6: Measures of Global and Local Spatial Association"
             href: "Hands-on_Ex/Hands-on_Ex06/Hands-on_Ex06.html"
+          - text: "Hands-on 7: Geographic Segmentation with Spatially Constrained Cluster Analysis"
+            href: "Hands-on_Ex/Hands-on_Ex07/Hands-on_Ex07.html"
+          - text: "Hands-on 8: Geographically Weighted Regression"
+            href: "Hands-on_Ex/Hands-on_Ex08/Hands-on_Ex08.html"
+          
             
       - text: "In-class Exercise"
         menu: 
@@ -30,11 +37,25 @@ website:
             href: "In-class_Ex/In-class_Ex05/In-class_Ex05.html"
           - text: "ICE 5: Spatial Weights and Applications"
             href: "In-class_Ex/In-class_Ex06/In-class_Ex06.html"
-            
+          - text: "ICE 6: "
+            href: "In-class_Ex/In-class_Ex07/In-class_Ex07.html"
+          - text: "ICE 7: "
+            href: "In-class_Ex/In-class_Ex08/In-class_Ex08.html"
+          - text: "ICE 8: "
+            href: "In-class_Ex/In-class_Ex09/In-class_Ex09.html"
+          - text: "ICE 9: "
+            href: "In-class_Ex/In-class_Ex10/In-class_Ex10.html"
+          - text: "ICE 10: "
+            href: "In-class_Ex/In-class_Ex11/In-class_Ex11.html"
+          
       - text: "Take Home Exercise"
         menu: 
           - text: "Take Home Exercise 1"
             href: "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html"
+          - text: "Take Home Exercise 2"
+            href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html"
+          - text: "Take Home Exercise 3"
+            href: "Take-home_Ex/Take-home_Ex03/Take-home_Ex03.html"
     #right:
      # - href: index.qmd
       #  text: Home
