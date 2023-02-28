@@ -1,0 +1,13 @@
+name: Geodemo
+title: Geodemo
+username:
+account: zoechia
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8419595
+bundleId: 6891638
+url: https://zoechia.shinyapps.io/Geodemo/
+when: 1677482657.39493
+lastSyncTime: 1677482657.39495
+asMultiple: FALSE
+asStatic: FALSE
