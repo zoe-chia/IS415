@@ -11,7 +11,7 @@ editor: visual
 # Setup
 
 ```{r}
-pacman::p_load(sf, tmap, sfdep, zoo, tidyverse)
+pacman::p_load(sf, sfdep, tmap, zoo, plotly, tidyverse)
 ```
 
 ## Import Data
@@ -34,7 +34,7 @@ hunan_GDPPC <- left_join(hunan,hunan2012) %>%
 
 ## Step 1: Queen's method
 
-Prepare weight metrics first
+### Prepare weight metrics
 
 ```{r}
 wm_q <- hunan_GDPPC %>%
@@ -52,9 +52,9 @@ moranI <- global_moran(wm_q$GDPPC,
                        wm_q$wt)
 ```
 
-### Perform Global Moran's I
+### Perform Global Moran's I Test
 
-Gives you test statistics , p value for you to find
+Gives you test statistics, p value for you to find
 
 ```{r}
 global_moran_test(wm_q$GDPPC,
@@ -64,7 +64,13 @@ global_moran_test(wm_q$GDPPC,
 
 0.000001095 is smaller than the alpha value of 0.05 hence we reject the H0 that the observed gdppc is spatially independent.
 
-Moran I Statistic value is greater than 0, hence there are signed of clustering. \### Perform Global Moran's I Permutation Test Ensure that your model is reproducible:
+Moran I Statistic value is greater than 0, hence there are signed of clustering.
+
+### Perform Global Moran's I Permutation Test
+
+**Monte Carlo Simulation**
+
+Ensure that your model is reproducible by setting a seed:
 
 ```{r}
 set.seed(1234)
@@ -77,7 +83,7 @@ global_moran_perm(wm_q$GDPPC,
                   nsim = 99)
 ```
 
-0.30075 is the moran's statistic Significance level (p value) has changed
+0.30075 is the Moran's statistic Significance level (p value) has changed
 
 ## Computing Local Moran's I
 
@@ -108,6 +114,8 @@ lisa
 
 ### Visualising Local Moran's I
 
+Visualise ii
+
 ```{r}
 tmap_mode('plot')
 tm_shape(lisa) + 
@@ -115,6 +123,8 @@ tm_shape(lisa) +
   tm_borders(alpha = 0.5) + 
   tm_view(set.zoom.limits = c(6,8))
 ```
+
+Visualise p_ii_sim
 
 ```{r}
 tmap_mode('plot')
@@ -127,7 +137,29 @@ tm_shape(lisa) +
 Should ideally use the one from the simulation (e.g. p_ii_sim r p_folded_sim) to get a more stable result.
 :::
 
-Combining the two
+Plotting the two together:
+
+```{r}
+tmap_mode("plot")
+map1 <- tm_shape(lisa) +
+  tm_fill("ii") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of GDPPC",
+            main.title.size = 0.8)
+
+map2 <- tm_shape(lisa) +
+  tm_fill("p_ii",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of local Moran's I",
+            main.title.size = 0.8)
+
+tmap_arrange(map1, map2, ncol = 2)
+```
+
+### Visualising LISA Map
 
 ```{r}
 lisa_sig <- lisa %>%
@@ -142,14 +174,27 @@ tm_shape(lisa)+
   tm_borders(alpha = 0.4)
 ```
 
-low-high and high-low are outliers.
+low-high and high-low are outliers because they are surrounded by polygons that are not like themselves.
 
 Not tidy \^ figure out from hands on ex. Should also have a portion called insignificant.
 
-## Deriving contiguity weight: Rook's method
+## Hot Spot and Cold Spot Area Analysis
+
+HCSA uses spatial weights to identify locations of statistically significant hot spots and cold spots in an spatially weighted attribute that are in proximity to one another based on a calculated distance. The analysis groups features when similar high (hot) or low (cold) values are found in a cluster. The polygon features usually represent administration boundaries or a custom grid structure.
+
+### Compute local Gi\* Statistics
 
 ```{r}
-HCSA <- wm_q %>% 
+wm_idw <- hunan_GDPPC %>%
+  mutate(nb = st_contiguity(geometry),
+         wts = st_inverse_distance(nb, geometry,
+                                   scale = 1,
+                                   alpha = 1),
+         .before = 1)
+```
+
+```{r}
+HCSA <- wm_idw %>% 
   mutate(local_Gi = local_gstar_perm(
     GDPPC, nb, wt, nsim = 99),
          .before = 1) %>%
@@ -157,21 +202,17 @@ HCSA <- wm_q %>%
 HCSA
 ```
 
-Local G: where ii = 0, exclude yourself
-
-Local G\*: Include yourself, hn99
-
-## Visualising Gi\*
+### Visualising Gi\*
 
 ```{r}
-# tmap_mode("view") 
-# tm_shape(HCSA) + 
-#  tm_fill("gi_star") +
-#  tm_borders(alpha = 0.5) + 
-#  tm_view(c(6,8))
+tmap_mode("plot")
+tm_shape(HCSA) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8))
 ```
 
-Visualing p value of HCSA
+### Visualing p-value of HCSA
 
 ```{r}
 tmap_mode("plot")
@@ -180,7 +221,53 @@ tm_shape(HCSA) +
   tm_borders(alpha = 0.5)
 ```
 
+### Visualising local HCSA
+
+```{r}
+tmap_mode("plot")
+map1 <- tm_shape(HCSA) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of GDPPC",
+            main.title.size = 0.8)
+
+map2 <- tm_shape(HCSA) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi*",
+            main.title.size = 0.8)
+
+tmap_arrange(map1, map2, ncol = 2)
+```
+
+### Visualising hot and cold spot areas
+
+```{r}
+HCSA_sig <- HCSA  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+tm_shape(HCSA) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.4)
+```
+
+::: callout-note
+Figure above reveals that there is one hot spot area and two cold spot areas. Interestingly, the hot spot areas coincide with the High-high cluster identifies by using local Moran's I method in the earlier sub-section.
+:::
+
+Local G: where ii = 0, exclude yourself
+
+Local G\*: Include yourself, hn99
+
 # Emerging Hot Spot Analysis
+
+Spatio-temporal analysis method forrevealing and describing how hot spot and cold spot areas **evolve over time.**
 
 Year, location name, value Consolidate
 
@@ -193,12 +280,32 @@ hunan <- st_read(dsn = "data/geospatial",
 GDPPC <- read_csv("data/aspatial/Hunan_GDPPC.csv")
 ```
 
+## 1. Build a space-time cube
+
+spacetime() of sfdep is used to create a spatio-temporal cube.
+
 ```{r}
 GDPPC_st <- spacetime(GDPPC, 
                       hunan, 
                       .loc_col = "County", 
                       .time_col = "Year")
 ```
+
+**Check if GDPPC_st is a space-time cube**
+
+```{r}
+is_spacetime_cube(GDPPC_st)
+```
+
+## 2. Calculate Getis-Ord local Gi\* statistic for each bin by using an FDR correction
+
+### Computing Gi\*
+
+**(i) Derive Spatial Weights**
+
+Use these new columns to calculate the local Gi\* for each location.
+
+-   Identify neighbours and derive an inverse distance weights
 
 ```{r}
 GDPPC_nb <-GDPPC_st %>%
@@ -211,7 +318,11 @@ GDPPC_nb <-GDPPC_st %>%
   set_wts("wt")
 ```
 
-## Computing Gi\*
+The dataset now has neighbours and weights for each time slice.
+
+**(ii) Computing Gi\***
+
+-   Calculate local Gi\* for each location by grouping by Year
 
 ```{r}
 gi_stars <- GDPPC_nb %>%
@@ -221,7 +332,9 @@ gi_stars <- GDPPC_nb %>%
   tidyr::unnest(gi_star)
 ```
 
-# Mann-Kendall Test
+## 3. Evaluate hot and cold areas with Mann-Kendall Test
+
+From the Gi\* values above, evaluate each location for a trend using the Mann-Kendall test.
 
 ```{r}
 cbg <- gi_stars %>% 
@@ -231,33 +344,108 @@ cbg <- gi_stars %>%
 ```
 
 ```{r}
+ggplot(data = cbg, 
+       aes(x = Year, 
+           y = gi_star)) +
+  geom_line() +
+  theme_light()
+```
+
+**Interactive plot:**
+
+```{r}
+p <- ggplot(data = cbg, 
+       aes(x = Year, 
+           y = gi_star)) +
+  geom_line() +
+  theme_light()
+
+ggplotly(p) # ggplotly(p) - create interactive
+```
+
+```{r}
 #emerging <- ehsa %>%
 #  arrange(s1,abs(tau)) %>%
 #  slice(1:5)
 ```
 
+```{r}
+cbg %>%
+  summarise(mk = list(
+    unclass(
+      Kendall::MannKendall(gi_star)))) %>% 
+  tidyr::unnest_wider(mk)
+```
+
+::: callout-note
+sl: p-value
+
+Slightly upward and insignificant trend.
+:::
+
+**To replicate for each location, use group_by() of the dplyr package:**
+
+```{r}
+ehsa <- gi_stars %>%
+  group_by(County) %>%
+  summarise(mk = list(
+    unclass(
+      Kendall::MannKendall(gi_star)))) %>%
+  tidyr::unnest_wider(mk)
+```
+
+### Arrange to show significant emerging hot-cold spots.
+
+```{r}
+emerging <- ehsa %>% 
+  arrange(sl, abs(tau)) %>% 
+  slice(1:5)
+```
+
 ## Performing Emerging Hotspot Analysis
 
 ```{r}
-#ehsa <- emerging_hotspot_analysis(
-#  x = GDPP_st,
-#  .var = "GDPPC",
-#  k = 1,
-#  nsim = 99
-#)
+ehsa <- emerging_hotspot_analysis(
+  x = GDPPC_st,
+  .var = "GDPPC",
+  k = 1,
+  nsim = 99
+)
+```
+
+## Visualing distribution of EHSA Classes
+
+```{r}
+ ggplot(data = ehsa,
+       aes(x = classification)) + 
+  geom_bar()
+```
+
+Figure above shows that sporadic cold spots class has the high numbers of county.
+
+### Visualing EHSA
+
+```{r}
+#hunan_ehsa <- hunan %>%
+#  left_join(ehsa,
+#            by = join_by(County == location))
 ```
 
 ```{r}
-# ggplot(data = ehsa,
-#       aes(x = classification)) + 
-#  geom_bar()
+#ehsa_sig <- hunan_ehsa  %>%
+#  filter(p_value < 0.05)
+#tmap_mode("plot")
+#tm_shape(hunan_ehsa) +
+#  tm_polygons() +
+#  tm_borders(alpha = 0.5) +
+#tm_shape(ehsa_sig) +
+#  tm_fill("classification") + 
+#  tm_borders(alpha = 0.4)
 ```
-
-## Visualing EHSA
 
 ```{r}
 #| eval: false
-# lisa_sig <- lisa %>% 
+# ehsa_sig <- lisa %>% 
 #  filter(p_li < 0.05)
 #tmap_mode('plot')
 #tm_shape(lisa) + 
@@ -266,18 +454,4 @@ cbg <- gi_stars %>%
 #  tm_shape(lisa_sig) + 
 #  tm_fill("mean") + 
 #  tm_borders(alpha = 0.4)
-```
-
-```{r}
-#p <- gplot(data = cbg,
-# aes (x = Year, y = gi_star)) + 
-#  geom_line() + 
-#  theme_light()
-```
-
-ggplotly(p) - create interactive
-
-```{r}
-#cbg %<% 
-#  sumarise
 ```
