@@ -426,31 +426,78 @@ Monthly vaccination rate = (Sum per month of) Total number of vaccinations / Tot
 
 *Reference: https://is415-msty.netlify.app/posts/2021-09-10-take-home-exercise-1/#cumulative-confirmed-cases-rate*
 
+::: {.callout-note collapse="true"}
+#### Old code for my reference
+
+(Please ignore this)
+
 ```{r}
 # grouping based on the sub-district and date
 vaccinations_jkt <- vaccinations_jkt %>%
   group_by(SUBDISTRICT, Date) %>%
   dplyr::mutate(`Dose1_Rate` = ((sum(Total_Dosage1)/(TOTALPOP))*100))
 ```
+:::
 
-# test 
+```{r}
+vaccination_rate <- vaccinations %>%
+  inner_join(jkt, by=c("Sub_District" = "SUBDISTRICT")) %>%
+  group_by(Sub_District, Date) %>%
+  dplyr::summarise(`Dose1_Rate` = ((sum(Total_Dosage1)/(TOTALPOP))*100)) %>%
+  ungroup() %>% pivot_wider(names_from = Date,
+              values_from = Dose1_Rate)
+```
 
 ```{r}
 vaccinations_jkt <- st_as_sf(vaccinations_jkt)
+vaccination_rate <- vaccination_rate %>% left_join(jkt, by=c("Sub_District" = "SUBDISTRICT"))
+vaccination_rate <- st_as_sf(vaccination_rate)
 ```
 
 ## Plotting our Choropleth Map
 
 ```{r}
-tm_shape(vaccinations_jkt) +
-  tm_fill("Dose1_Rate",
-          palette = "Blues",
-          style="quantile") +
-  tm_facets(by="Date") +
-  tm_borders(alpha = 0.5)+ 
-  tm_layout(legend.outside = TRUE,
-            legend.outside.position = "left")
+jenks_plot <- function(df, varname) {
+  tm_shape(vaccination_rate) +
+    tm_polygons() +
+  tm_shape(df) +
+    tm_fill(varname, 
+          n= 6,
+          style = "jenks", 
+          title = "Vaccination Rate") +
+    tm_layout(main.title = varname,
+          main.title.position = "center",
+          main.title.size = 1.2,
+          legend.height = 0.45, 
+          legend.width = 0.35,
+          frame = TRUE) +
+    tm_borders(alpha = 0.5)
+}
 ```
+
+```{r}
+tmap_mode("plot")
+tmap_arrange(jenks_plot(vaccination_rate, "2021-07-01"),
+             jenks_plot(vaccination_rate, "2021-08-01"),
+             jenks_plot(vaccination_rate, "2021-09-01"),
+             jenks_plot(vaccination_rate, "2021-10-01"),
+             jenks_plot(vaccination_rate, "2021-11-01"),
+             jenks_plot(vaccination_rate, "2021-12-01"),
+             jenks_plot(vaccination_rate, "2022-01-01"),
+             jenks_plot(vaccination_rate, "2022-02-01"),
+             jenks_plot(vaccination_rate, "2022-03-02"),
+             jenks_plot(vaccination_rate, "2022-04-01"),
+             jenks_plot(vaccination_rate, "2022-05-01"),
+             jenks_plot(vaccination_rate, "2022-06-01"))
+```
+
+::: {.callout-note collapse="true"}
+#### Old code for my reference
+
+(Please ignore this)
+
+tm_shape(vaccination_rate) + tm_fill("Dose1_Rate", palette = "Blues", style="quantile") + tm_facets(by="Date") + tm_borders(alpha = 0.5)+ tm_layout(legend.outside = TRUE, legend.outside.position = "left")
+:::
 
 ::: callout-note
 #### Analysis
@@ -474,107 +521,71 @@ Vaccination_Rate <- vaccinations_jkt %>%
 ```
 
 ```{r}
-#wm_idw <- Vaccination_Rate %>%
-#  mutate(nb = st_contiguity(geometry),
-#         wts = st_inverse_distance(nb, geometry,
-#                                   scale = 1,
-#                                   alpha = 1),
-#         .before = 1)
-```
-
-Time cube
-
-```{r}
-#vacc_jkt_ts <- spacetime(vaccinations_jkt,
-                         jkt,
-                         .loc_col = "SUBDISTRICT",
-                         .time_col = "Date")
+class(Vaccination_Rate$Date)
 ```
 
 ```{r}
-#is_spacetime_cube(vacc_jkt_ts)
+wm_idw <- vaccination_rate %>%
+  mutate(nb = st_contiguity(geometry),
+         wts = st_inverse_distance(nb, geometry,
+                                   scale = 1,
+                                   alpha = 1),
+         .before = 1)
+```
+
+## Create function to get Gi for all months
+
+```{r}
+get_gi <- function(period){
+  set.seed(1234)
+  HCSA <- wm_idw
+  HCSA <- wm_idw %>%
+    mutate(local_gi = local_gstar_perm(
+      HCSA[[period]],
+      nb,
+      wt,
+      nsim = 99
+    ),
+    .before = 1) %>%
+    unnest(local_gi)
+  
+  significant_HCSA <- HCSA %>%
+    filter(p_sim < 0.05)
+  
+  tmap_mode("plot")
+  tm_shape(HCSA) + 
+    tm_polygons() + 
+    tm_borders(alpha = 0.5) + 
+    tm_shape(significant_HCSA) + 
+    tm_fill("gi_star",
+            palette = "Blues") + 
+    tm_borders(alpha = 0.4) + 
+    tm_layout(main.title = period,
+              main.title.size = 0.8)
+}
 ```
 
 ```{r}
-#vacc_jkt_nb <- vacc_jkt_ts %>%
-#  activate("geometry") %>%
-#  mutate(nb = include_self(st_contiguity(geometry)),
-#         wt = st_inverse_distance(nb, geometry,
-#                                   scale=1,
-#                                   alpha=1),
-#         .before=1)%>%
-#  set_wts("wt") %>%
-#  set_nbs("nb")
-```
-
-```{r}
-#get_gi <- function(period){
-#  set.seed(1234)
-#  
-#  month <- vaccinations_jkt %>%
-#    filter(Date==period)
-#  
-#  wm_idw <- month%>%
-#    mutate(nb = st_contiguity(geometry),
-#           wt = st_inverse_distance(nb, geometry,
-#                                    scale = 1,
-#                                    alpha = 1))
-#  HCSA <- wm_idw %>%
-#    mutate(local_gi = localgstar_perm(
-#      Dose1_Rate,
-#      nb,
-#      wt,
-#      nsim = 99
-#    ),
-#    .before = 1) %>%
-#    unnest(local_gi)
-#  
-#  return (HCSA)
-#}
-```
-
-```{r}
-#for (i in timeseries){
-#  vaccinations_jkt<-get_gi(i)
-#}
-```
-
-```{r}
-#set.seed(1234)
-#HCSA <- wm_idw %>% 
-#  group_by(SUBDISTRICT, Date) %>%
-#  mutate(local_Gi = local_gstar_perm(
-#    Vaccination_Rate, nb, wts, nsim = 99),
-#         .before = 1) %>%
-#  unnest(local_Gi)
-```
-
-```{r}
-
-```
-
-```{r}
-# significant_HCSA <- HCSA %>% filter(p_sim < 0.05)
-```
-
-```{r}
-#tm_shape(HCSA) + 
-#  tm_polygons() + 
-#  tm_borders(alpha=0.5) + 
-#  tm_shape(significant_HCSA) +
-#  tm_fill("gi_star",
-#          palette = "Blues",
-#          style="quantile") +
-#  tm_facets(by="Date") +
-#  tm_borders(alpha=0.5) + 
-#  tm_layout(legend.outside = TRUE,
-#          legend.outside.position = "left")
+tmap_arrange(get_gi("2021-07-01"),
+             get_gi("2021-08-01"),
+             get_gi("2021-09-01"),
+             get_gi("2021-10-01"),
+             get_gi("2021-11-01"),
+             get_gi("2021-12-01"),
+             get_gi("2022-01-01"),
+             get_gi("2022-02-01"),
+             get_gi("2022-03-02"),
+             get_gi("2022-04-01"),
+             get_gi("2022-05-01"),
+             get_gi("2022-06-01"))
 ```
 
 ::: callout-note
 #### Findings
 
-There seems to be a consistent cluster at the southwest and central regions of Jakarta. The cool clusters at the north of Jakarta also seem to be consistent. The government may want to focus and increase vaccination rates in those areas.
+Overtime, clusters form at the south of Jakarta and remained a hot spot.
+
+There seems to be a consistent cluster at the southwest and central regions of Jakarta. The cool clusters at the centre and northwest of Jakarta seems to be consistent. The government may want to focus and increase vaccination rates in those areas.
 :::
 
 # Emerging Hot Spot Analysis (EHSA)
