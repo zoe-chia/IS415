@@ -1,0 +1,53 @@
+---
+title: "Hands-on_Ex07: Geographically Weighted Regression"
+date-modified: "`r Sys.Date()`"
+date: "6 March 2023"
+execute: 
+  message: false
+  warning: false
+editor: visual
+---
+
+# Setup
+
+```{r}
+pacman::p_load(dplyr, olsrr, ggpubr, sf, spdep, GWmodel, tmap, tidyverse, gtsummary, readr)
+```
+
+## Importing data
+
+### Geospatial Data
+
+```{r}
+mpsz = st_read(
+  dsn = "data/geospatial", 
+  layer = "MP14_SUBZONE_WEB_PL") %>%
+  st_transform(crs = 3414)
+```
+
+```{r}
+st_crs(mpsz)
+```
+
+```{r}
+st_bbox(mpsz) #view extent
+```
+
+### Aspatial Data
+
+```{r}
+condo_resale = read_csv("data/aspatial/Condo_resale_2015.csv")
+```
+
+```{r}
+glimpse(condo_resale)
+```
+
+Convert aspatial df to sf
+
+```{r}
+condo_resale.sf <- st_as_sf(condo_resale,
+                            coords = c("LONGITUDE", "LATITUDE"),
+                            crs=4326) %>%
+  st_transform(crs=3414)
+```
