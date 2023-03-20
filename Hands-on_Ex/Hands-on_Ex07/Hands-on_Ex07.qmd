@@ -398,7 +398,7 @@ Since the Observed Global Moran I = 0.1424418 which is **greater than 0**, we ca
 
 # Building Hedonic Pricing Models with GWmodel
 
-## Building Fixed Bandwidth GWR Model 
+## Building Fixed Bandwidth GWR Model
 
 ### 1. Computing the fixed bandwidth
 
@@ -466,7 +466,7 @@ bw.adaptive <- bw.gwr(formula = SELLING_PRICE ~ AREA_SQM + AGE  +
 
 The result shows that the 30 is the recommended data points to be used.
 
-### Construct the adaptive bandwidth GWR model 
+### Construct the adaptive bandwidth GWR model
 
 ```{r}
 gwr.adaptive <- gwr.basic(formula = SELLING_PRICE ~ AREA_SQM + AGE + 
@@ -500,7 +500,7 @@ In addition to regression residuals, the output feature class table includes fie
 
 -   Coefficient Standard Error: these values measure the reliability of each coefficient estimate. Confidence in those estimates are higher when standard errors are small in relation to the actual coefficient values. Large standard errors may indicate problems with local collinearity.
 
-They are all stored in a SpatialPointsDataFrame or SpatialPolygonsDataFrame object integrated with fit.points, GWR coefficient estimates, y value, predicted values, coefficient standard errors and t-values in its \"data\" slot in an object called **SDF** of the output list.
+They are all stored in a SpatialPointsDataFrame or SpatialPolygonsDataFrame object integrated with fit.points, GWR coefficient estimates, y value, predicted values, coefficient standard errors and t-values in its "data" slot in an object called **SDF** of the output list.
 
 ## Converting SDF to sf dataframe
 
@@ -582,6 +582,6 @@ tm_shape(condo_resale.sf.adaptive) +
 
 ## 13.10 Reference
 
-Gollini I, Lu B, Charlton M, Brunsdon C, Harris P (2015) \"GWmodel: an R Package for exploring Spatial Heterogeneity using Geographically Weighted Models\". *Journal of Statistical Software*, 63(17):1-50, http://www.jstatsoft.org/v63/i17/
+Gollini I, Lu B, Charlton M, Brunsdon C, Harris P (2015) "GWmodel: an R Package for exploring Spatial Heterogeneity using Geographically Weighted Models". *Journal of Statistical Software*, 63(17):1-50, http://www.jstatsoft.org/v63/i17/
 
-Lu B, Harris P, Charlton M, Brunsdon C (2014) \"The GWmodel R Package: further topics for exploring Spatial Heterogeneity using GeographicallyWeighted Models\". *Geo-spatial Information Science* 17(2): 85-101, http://www.tandfonline.com/doi/abs/10.1080/1009502.2014.917453
+Lu B, Harris P, Charlton M, Brunsdon C (2014) "The GWmodel R Package: further topics for exploring Spatial Heterogeneity using GeographicallyWeighted Models". *Geo-spatial Information Science* 17(2): 85-101, http://www.tandfonline.com/doi/abs/10.1080/1009502.2014.917453

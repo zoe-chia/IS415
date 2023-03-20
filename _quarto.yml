@@ -19,9 +19,9 @@ website:
             href: "Hands-on_Ex/Hands-on_Ex05/Hands-on_Ex05.html"
           - text: "Hands-on 6: Measures of Global and Local Spatial Association"
             href: "Hands-on_Ex/Hands-on_Ex06/Hands-on_Ex06.html"
-          - text: "Hands-on 7: Geographic Segmentation with Spatially Constrained Cluster Analysis"
+          - text: "Hands-on 7: Geographically Weighted Regression"
             href: "Hands-on_Ex/Hands-on_Ex07/Hands-on_Ex07.html"
-          - text: "Hands-on 8: Geographically Weighted Regression"
+          - text: "Hands-on 8: "
             href: "Hands-on_Ex/Hands-on_Ex08/Hands-on_Ex08.html"
           
             
@@ -39,12 +39,13 @@ website:
             href: "In-class_Ex/In-class_Ex06/In-class_Ex06.html"
           - text: "ICE 6: Global and Local Measures of Autocorrelation"
             href: "In-class_Ex/In-class_Ex07/In-class_Ex07.html"
-          - text: "ICE 7: Segmentations with Spatially Constrained Cluster Analysis"
+          - text: "ICE 7: Geographically Weighted Regression"
+            href: "Hands-on_Ex/Hands-on_Ex06/Hands-on_Ex06.html"
+          - text: "ICE 8: Geographically Weighted Random Forest"
             href: "In-class_Ex/In-class_Ex08/In-class_Ex08.html"
-          - text: "ICE 8: Spatial Interaction Models"
-            href: "In-class_Ex/In-class_Ex09/In-class_Ex09.html"
           - text: "ICE 9: Modeling Geographic Accessibility"
-            href: "In-class_Ex/In-class_Ex10/In-class_Ex10.html"
+            href: "In-class_Ex/In-class_Ex09/In-class_Ex09.html"
+            
          
           
       - text: "Take Home Exercise"

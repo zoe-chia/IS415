@@ -1,0 +1,185 @@
+---
+title: "In-class_Ex08: Geographically Weighted Random Forest"
+date-modified: "`r Sys.Date()`"
+date: "13 March 2023"
+execute: 
+  message: false
+  warning: false
+editor: visual
+---
+
+# Setting the Scene
+
+In this hands-on experience, we will learn how to delineate homogeneous region by using geographically referenced multivariate data. There are two major analysis, namely:
+
+-   hierarchical cluster analysis; and
+
+-   spatially constrained cluster analysis.
+
+# Setup
+
+## Installing packages
+
+```{r}
+pacman::p_load(sf, spdep, GWmodel, SpatialML, tmap, ggpubr, olsrr, devtools, tidymodels, rsample, tidyverse)
+```
+
+## Importing Geospatial Data
+
+```{r}
+mdata <- read_rds("data/aspatial/mdata.rds")
+```
+
+```{r}
+# #| eval: false
+# library(rsample)
+set.seed(1234) # ensure it's reproducible
+resale_split <- initial_split(mdata,
+                              prop = 6.5/10,) # 35% test data 
+```
+
+```{r} 
+train_data <- training(resale_split)
+test_data <- testing(resale_split)
+```
+
+```{r}
+write_rds(train_data, "data/model/train_data.rds")
+write_rds(test_data, "data/model/test_data.rds")
+```
+
+```{r}
+price_mlr <- lm(resale_price ~ floor_area_sqm +
+                  storey_order + remaining_lease_mths +
+                  PROX_CBD + PROX_ELDERLYCARE + PROX_HAWKER +
+                  PROX_MRT + PROX_PARK + PROX_MALL +
+                  PROX_SUPERMARKET + WITHIN_350M_KINDERGARTEN +
+                  WITHIN_350M_CHILDCARE + WITHIN_350M_BUS +
+                  WITHIN_1KM_PRISCH,
+                data = train_data)
+summary(price_mlr)
+```
+
+```{r}
+write_rds(price_mlr, "data/model/price_mlr.rds")
+```
+
+## gwr predictive method
+
+### Converting sf to SpatialPointDataFrame
+
+```{r}
+train_data_sp <- as_Spatial(train_data)
+train_data_sp
+```
+
+### Computing adaptive bandwidth 
+
+```{r}
+bw_adaptive <- bw.gwr(resale_price ~ floor_area_sqm +
+                  storey_order + remaining_lease_mths +
+                  PROX_CBD + PROX_ELDERLYCARE + PROX_HAWKER +
+                  PROX_MRT + PROX_PARK + PROX_MALL +
+                  PROX_SUPERMARKET + WITHIN_350M_KINDERGARTEN +
+                  WITHIN_350M_CHILDCARE + WITHIN_350M_BUS +
+                  WITHIN_1KM_PRISCH,
+                  data = train_data,
+                  approach = "CV",
+                  kernel="gaussian", 
+                  adaptive=TRUE, 
+                  longlat=FALSE
+                      )
+```
+
+## Preparing 
+
+```{r}
+# keep data with geometry information in coordinates file
+coords <- st_coordinates(mdata)
+coords_train <- st_coordinates(train_data)
+coords_test <- st_coordinates(test_data)
+```
+
+Write to RDS
+
+```{r}
+coords_train <- write_rds(coords_train, "data/model/coords_train.rds")
+coords_test <- write_rds(coords_test, "data/model/coords_test.rds")
+```
+
+### Dropping geometry field
+
+```{r}
+train_data <- train_data %>%
+  st_drop_geometry()
+```
+
+## Calibrating Random Forest
+
+```{r}
+set.seed(1234)
+rf <- ranger(resale_price ~ floor_area_sqm +
+                  storey_order + remaining_lease_mths +
+                  PROX_CBD + PROX_ELDERLYCARE + PROX_HAWKER +
+                  PROX_MRT + PROX_PARK + PROX_MALL +
+                  PROX_SUPERMARKET + WITHIN_350M_KINDERGARTEN +
+                  WITHIN_350M_CHILDCARE + WITHIN_350M_BUS +
+                  WITHIN_1KM_PRISCH,
+                data = train_data)
+```
+
+```{r}
+print(rf)
+```
+
+## Calibrating Geographically Weighted Random Forest Model
+
+```{r}
+#set.seed(1234)
+#gwRF_adaptive <- grf(formula = resale_price ~ floor_area_sqm +
+#                  storey_order + remaining_lease_mths +
+#                  PROX_CBD + PROX_ELDERLYCARE + PROX_HAWKER +
+#                  PROX_MRT + PROX_PARK + PROX_MALL +
+#                  PROX_SUPERMARKET + WITHIN_350M_KINDERGARTEN +
+#                  WITHIN_350M_CHILDCARE + WITHIN_350M_BUS +
+#                  WITHIN_1KM_PRISCH,
+#                  dframe = train_data, 
+#                  kernel = "adaptive",
+#                  coords = coords_train)
+```
+
+```{r}
+#gwRF_adaptive <- write_rds()
+```
+
+in console: gwRF_adaptive \$ Global.Model \$ variable.importance
+
+vi_df \<- as.data.frame(gwRF_adaptive \$ Global.Model \$ variable.importance)
+
+### Predicting using test data
+
+#### Preparing test data
+
+```{r}
+#test_data <- cbind(test_data, coords_test) %>% 
+#  st_drop_geometry()
+```
+
+```{r}
+#gwRF_pred <- predict.grf(gwRF_adaptive, 
+#                         test_data, 
+#                         x.var.name = "X",
+#                         y.var.name = "Y",
+#                         local.w=1, #calibrate local version of your model
+#                         global.w=0)
+# output is a vector
+```
+
+```{r}
+# convert to dataframe to combine with original test data  
+# gwRF_pred_df <- as.data.frame(gwRF_pred)
+```
+
+```{r}
+# sqrt(mean((test_predict$resale_price - test_predict$predict_grf)^2))
+```
