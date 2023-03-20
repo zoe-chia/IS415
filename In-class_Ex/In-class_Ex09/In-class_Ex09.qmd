@@ -1,0 +1,192 @@
+---
+title: "In Class Exercise 10: Modeling Geographical Accessibility"
+date-modified: "`r Sys.Date()`"
+date: "20 March 2023"
+execute: 
+  message: false
+  warning: false
+editor: visual
+---
+
+# 1 Setup
+
+## 1.1 Loading packages
+
+For fca package: rows: destination, col: origin
+
+For SpatialAcc package: rows: origin, col: destination
+
+```{r}
+pacman::p_load(tmap, SpatialAcc, sf, 
+               ggstatsplot, reshape2,
+               tidyverse)
+```
+
+## 1.2 Importing Data
+
+```{r}
+mpsz <- st_read(dsn = "data/geospatial", layer = "MP14_SUBZONE_NO_SEA_PL")
+
+```
+
+```{r}
+hexagons <- st_read(dsn = "data/geospatial", layer = "hexagons") 
+```
+
+```{r}
+eldercare <- st_read(dsn = "data/geospatial", layer = "ELDERCARE") 
+```
+
+## 1.3 Updating CRS Information
+
+To ensure things are consistent
+
+```{r}
+mpsz <- st_transform(mpsz, 3414)
+eldercare <- st_transform(eldercare, 3414)
+hexagons <- st_transform(hexagons, 3414)
+```
+
+```{r}
+st_crs(mpsz)
+```
+
+## 1.4 Cleaning and updating attribute fields of the geospatial data
+
+```{r}
+eldercare <- eldercare %>%
+  select(fid, ADDRESSPOS) %>%
+  rename(destination_id = fid, # rename fid to destination_id
+         postal_code = ADDRESSPOS) %>% # rename ADDRESSPOS to postal_code
+  mutate(capacity = 100) # create a new column for capacity and indicate as 100
+```
+
+```{r}
+hexagons <- hexagons %>%
+  select(fid) %>%
+  rename(origin_id = fid) %>%
+  mutate(demand = 100)
+```
+
+In practice, the actual demand of the hexagon and capacity of the eldercare centre should be used.
+
+# 2 Aspatial Data Handling and Wrangling
+
+```{r}
+ODMatrix <- read_csv("data/aspatial/OD_Matrix.csv", skip = 0)
+```
+
+The rows represent **origins** (i.e. also know as **from** field) and the columns represent **destination** (i.e. also known as **to** field.)
+
+The code chunk below uses *spread()* of **tidyr** package is used to transform the O-D matrix from a thin format into a fat format. Converting dataframe into matrix form.
+
+-   Spread() -\> Pivoting value: Total cost value.
+
+-   Each row is one demand point
+
+-   Number of columns is the number of elderlycare there is.
+
+-   Row - origin, column - destination.
+
+```{r}
+distmat <- ODMatrix %>%
+  select(origin_id, destination_id, total_cost) %>%
+  spread(destination_id, total_cost)%>%
+  select(c(-c('origin_id')))
+```
+
+```{r}
+distmat_km <- as.matrix(distmat/1000)
+```
+
+Convert from km to m by dividing by 1000.
+
+Computing Distance Matrix (optional)
+
+```{r}
+eldercare_coord <- st_coordinates(eldercare)
+hexagon_coord <- st_coordinates(hexagons)
+```
+
+```{r}
+EucMatrix <- SpatialAcc::distance(hexagon_coord, 
+                                  eldercare_coord,
+                                  type = "euclidean")
+```
+
+```{r}
+EuxMatrix_km <- as.matrix(EucMatrix/1000)
+```
+
+# 3 Modeling and Visualising Accessibility using Hansen Method
+
+Make into a dataframe so we can join back with hexagon layer to do mapping.
+
+```{r}
+acc_Hansen <- data.frame(ac(hexagons$demand,
+                            eldercare$capacity,
+                            distmat_km, 
+                            # d0 = 50,
+                            power = 2, 
+                            family = "Hansen"))
+```
+
+```{r}
+colnames(acc_Hansen) <- "accHansen"
+```
+
+Convert data to tibblr
+
+```{r}
+acc_Hansen <- as.tibble(acc_Hansen)
+```
+
+```{r}
+hexagon_Hansen <- bind_cols(hexagons, acc_Hansen)
+```
+
+## 3.1 Visualising Hansen's accessibilty
+
+```{r}
+#| eval: false
+tmap_mode("plot")
+tm_shape(hexagon_Hansen,
+         bbox = mapex) + 
+  tm_fill(col = "accHansen",
+          n = 10,
+          style = "quantile",
+          border.col = "black",
+          border.lwd = 1) +
+tm_shape(eldercare) +
+  tm_symbols(size = 0.1) +
+  tm_layout(main.title = "Accessibility to eldercare: Hansen method",
+            main.title.position = "center",
+            main.title.size = 2,
+            legend.outside = FALSE,
+            legend.height = 0.45, 
+            legend.width = 3.0,
+            legend.format = list(digits = 6),
+            legend.position = c("right", "top"),
+            frame = TRUE) +
+  tm_compass(type="8star", size = 2) +
+  tm_scale_bar(width = 0.15) +
+  tm_grid(lwd = 0.1, alpha = 0.5)
+```
+
+## 3.2 Statistical graphic visualisation
+
+```{r}
+hexagon_Hansen <- st_join(hexagon_Hansen, mpsz, 
+                          join = st_intersects)
+```
+
+```{r}
+ggplot(data=hexagon_Hansen, 
+       aes(y = log(accHansen), 
+           x= REGION_N)) +
+  geom_boxplot() +
+  geom_point(stat="summary", 
+             fun.y="mean", 
+             colour ="red", 
+             size=2)
+```
