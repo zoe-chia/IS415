@@ -1226,9 +1226,11 @@ summary(nb_lw)
 lm.morantest(rs_mlr1, nb_lw)
 ```
 
-![](images/image-1212800617.png)The Global Moran's I Test for residual spatial autocorrelation shows that it's p value is less than 0.05. Hence, we will reject the null hypothesis thta the residuals are randomly distributed.
+::: callout-note
+The Global Moran's I Test for residual spatial autocorrelation shows that it's p value is less than 0.05. Hence, we will reject the null hypothesis that the residuals are randomly distributed.
 
-Since the observed Moran I, 0.3984835, is greater than 0, we can infer that the residuals resemble cluster distribution.
+Since the observed Moran I, 0.4442489, is greater than 0, we can infer that the residuals resemble cluster distribution.
+:::
 
 ## 6.4 Building Hedonic Pricing Models
 
@@ -1255,11 +1257,11 @@ bw.fixed <- bw.gwr(formula = resale_price ~ floor_area_sqm + storey_order +
                    longlat=FALSE)
 ```
 
-![](images/image-792744810.png)
-
-From the results, the recommended bandwidth is 341
+::: callout-note
+From the results, the recommended bandwidth is 700.
 
 Now, calibrate the model using our fixed bandwidth found from above, and the gaussian kernel.
+:::
 
 ```{r}
 gwr.fixed <- gwr.basic(formula = resale_price ~ floor_area_sqm + storey_order + 
@@ -1277,9 +1279,9 @@ gwr.fixed <- gwr.basic(formula = resale_price ~ floor_area_sqm + storey_order +
 gwr.fixed
 ```
 
-![](images/image-539083858.png)
-
-![](images/image-1872037825.png)![](images/image-2015292270.png)The adjusted R Square of GWR is **0.918** which is significantly better than the global multiple linear regression model of 0.6173.
+::: callout-note
+The adjusted R Square of GWR is **0.958** which is significantly better than the global multiple linear regression model of 0.703.
+:::
 
 ### 6.4.5 Adaptive Bandwidth
 
@@ -1296,7 +1298,7 @@ bw.adaptive <- bw.gwr(formula = resale_price ~ floor_area_sqm + storey_order +
                       longlat=FALSE)
 ```
 
-![](images/image-206929719.png)From the results, **118** is the recommended data points to be used.
+From the results, **29** is the recommended data points to be used.
 
 ```{r}
 gwr.adaptive <- gwr.basic(formula = resale_price ~ floor_area_sqm + storey_order + 
@@ -1312,12 +1314,6 @@ gwr.adaptive <- gwr.basic(formula = resale_price ~ floor_area_sqm + storey_order
                           longlat = FALSE)
 gwr.adaptive
 ```
-
-![](images/image-1110903148.png)
-
-![](images/image-300839358.png)
-
-![](images/image-1483060758.png)
 
 ## 6.5 Hedonic Pricing Model with Random Forest
 
@@ -1342,13 +1338,12 @@ rf <- ranger(resale_price ~ floor_area_sqm + storey_order +
 print(rf)
 ```
 
-![](images/image-281701554.png)
-
 ### 6.5.3 Calibrating Geographical Random Forest Model
 
 #### 6.5.3.1 Calculating Bandwidth
 
 ```{r}
+#| eval: false
 gwRF_bw <- grf.bw(formula = resale_price ~ floor_area_sqm + storey_order +
                        age_of_unit + PROX_CBD + PROX_ELDERLYCARE +
                        PROX_HAWKER + PROX_MRT + PROX_PARK + PROX_MALL +
@@ -1361,12 +1356,14 @@ gwRF_bw <- grf.bw(formula = resale_price ~ floor_area_sqm + storey_order +
 ```
 
 ```{r}
+#| eval: false
 write_rds(gwRF_bw, "data/model/gwRF_bw.rds")
 ```
 
 #### 6.4.3.2 Calibrating Model with Training Data
 
 ```{r}
+#| eval: false
 set.seed(1234)
 gwRF_adaptive <- grf(formula = resale_price ~ floor_area_sqm + storey_order +
                        age_of_unit + PROX_CBD + PROX_ELDERLYCARE +
@@ -1374,7 +1371,7 @@ gwRF_adaptive <- grf(formula = resale_price ~ floor_area_sqm + storey_order +
                        PROX_SUPERMARKET +
                        WITHIN_350M_CHILDCARE + WITHIN_350M_BUS +
                        WITHIN_1KM_PRISCH,
-                     dframe=train_data, 
+                     dframe=train_data_nogeom, 
                      ntree=20,
                      bw=1183,
                      kernel="adaptive",
@@ -1384,6 +1381,7 @@ gwRF_adaptive <- grf(formula = resale_price ~ floor_area_sqm + storey_order +
 **Save model output**
 
 ```{r}
+#| eval: false
 write_rds(gwRF_adaptive, "data/model/gwRF_adaptive.rds")
 ```
 
@@ -1392,6 +1390,7 @@ write_rds(gwRF_adaptive, "data/model/gwRF_adaptive.rds")
 ### 6.6.1 Preparing Test Data
 
 ```{r}
+#| eval: false
 test_data <- cbind(test_data, coords_test) %>%
   st_drop_geometry()
 ```
@@ -1399,6 +1398,12 @@ test_data <- cbind(test_data, coords_test) %>%
 ### 6.6.2 Predicting with Test Data
 
 ```{r}
+#| eval: false
+gwRF_adaptive <- read_rds("data/model/gwRF_adaptive.rds")
+```
+
+```{r}
+#| eval: false
 gwRF_pred <- predict.grf(gwRF_adaptive, 
                            test_data, 
                            x.var.name="X",
@@ -1410,6 +1415,7 @@ gwRF_pred <- predict.grf(gwRF_adaptive,
 **Saving output to RDS**
 
 ```{r}
+#| eval: false
 GRF_pred <- write_rds(gwRF_pred, "data/model/GRF_pred.rds")
 ```
 
@@ -1418,6 +1424,7 @@ GRF_pred <- write_rds(gwRF_pred, "data/model/GRF_pred.rds")
 The output of the `predict.grf()` is a vector of predicted values. It is wiser to convert it into a data frame for further visualisation and analysis.
 
 ```{r}
+#| eval: false
 GRF_pred <- read_rds("data/model/GRF_pred.rds")
 GRF_pred_df <- as.data.frame(GRF_pred)
 ```
@@ -1427,21 +1434,29 @@ GRF_pred_df <- as.data.frame(GRF_pred)
 Combine data so that we can plot the scatter plot later on.
 
 ```{r}
+#| eval: false
 test_data_p <- cbind(test_data, GRF_pred_df)
 ```
 
 ```{r}
+#| eval: false
 write_rds(test_data_p, "data/model/test_data_p.rds")
 ```
 
 ### 6.6.5 Calculating Root Mean Square Error
 
 ```{r}
+test_data_p <- read_rds("data/model/test_data_p.rds")
+```
+
+```{r}
 rmse(test_data_p$resale_price,
      test_data_p$GRF_pred)
 ```
 
-Our RMSE is pretty small, given that the resale price is in the 100,000s and can go up to millions.
+::: callout-note
+Our RMSE is pretty small, given that the resale price is in the 500,000s and can go up to millions. This RMSE is also smaller than the OLS model's of 72525.65.
+:::
 
 ### 6.6.6 Visualising the predicted values
 
@@ -1452,6 +1467,6 @@ ggplot(data = test_data_p,
   geom_point()
 ```
 
-Additionally, the points are scatters around the diagonal line which shows that it is a good predictive model.
+Additionally, the points are scattered around the diagonal line which shows that it is a good predictive model.
 
-This model performed much better than the OLS Regression Model.
+The random forest model performed much better than the OLS Regression. Model.
