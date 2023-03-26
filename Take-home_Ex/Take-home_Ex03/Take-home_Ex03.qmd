@@ -1066,6 +1066,35 @@ From the results,
 
 -   We will exclude remaining_lease_mths for this study.
 
+In this section, we will prepare train and test datasets, calibrate the predictive models and compare the best model for predicting the future outcomes.
+
+### Extracting coordinates data
+
+As taking data from January 2021 to December 2022 caused R to crash and my laptop to slow down tremedously on multiple occasions, we will be taking data from the last quarter of 2022 as the training data.
+
+```{r}
+train_data <- rs_final %>% 
+  filter(month >= "2022-09" & month <= "2022-12") %>% 
+  select(-1)
+  
+test_data <- rs_final %>% 
+  filter(month >= "2023-01" & month <= "2023-02") %>%
+  select(-1)
+```
+
+```{r}
+coords <- st_coordinates(rs_final)
+coords_train <- st_coordinates(train_data)
+coords_test <- st_coordinates(test_data)
+```
+
+Write all the output into rds for future use:
+
+```{r}
+coords_train <- write_rds(coords_train, "data/model/coords_train.rds" )
+coords_test <- write_rds(coords_test, "data/model/coords_test.rds" )
+```
+
 ### 6.2.2 Implementing MLR
 
 ```{r}
@@ -1074,7 +1103,7 @@ rs_mlr1 <- lm(formula = resale_price ~ floor_area_sqm + storey_order +
                 PROX_HAWKER + PROX_MRT + PROX_PARK + PROX_MALL + 
                 PROX_SUPERMARKET + PROX_GOOD_PRISCH + 
                 WITHIN_350M_CHILDCARE + WITHIN_350M_BUS + WITHIN_1KM_PRISCH, 
-              data =resale_nogeom_sf)
+              data =train_data)
 summary(rs_mlr1)
 ```
 
@@ -1082,6 +1111,19 @@ From the results, we can see that all the variables are statistically significan
 
 ```{r}
 ols_regress(rs_mlr1)
+```
+
+### 6.2.3 Predicting with OLS
+
+```{r}
+ols_pred <- predict.lm(rs_mlr1, test_data) %>%
+  write_rds("data/model/price_ols_pred.rds")
+```
+
+### 6.2.4 RMSE of OLS Regression Model
+
+```{r}
+sqrt(mean((test_data$resale_price - ols_pred)^2))
 ```
 
 ## 6.3 Multiple Linear Regression (GWR)
@@ -1131,7 +1173,7 @@ Since the hedonic model we are trying to build is using geographically reference
 
 ```{r}
 mlr_output <- as.data.frame(rs_mlr1$residuals)
-rs_res_sf <- cbind(rs_final, 
+rs_res_sf <- cbind(train_data, 
                         rs_mlr1$residuals) %>%
   rename(`MLR_RES` = `rs_mlr1.residuals`)
 ```
@@ -1184,45 +1226,19 @@ summary(nb_lw)
 lm.morantest(rs_mlr1, nb_lw)
 ```
 
-The Global Moran's I Test for residual spatial autocorrelation shows that it's p value is less than 0.05. Hence, we will reject the null hypothesis thta the residuals are randomly distributed.
+![](images/image-1212800617.png)The Global Moran's I Test for residual spatial autocorrelation shows that it's p value is less than 0.05. Hence, we will reject the null hypothesis thta the residuals are randomly distributed.
 
 Since the observed Moran I, 0.3984835, is greater than 0, we can infer that the residuals resemble cluster distribution.
 
-## 6.4 Building Hedonic Pricing Models with Training Data
+## 6.4 Building Hedonic Pricing Models
 
-### 6.4.1 Split Data into Train and Test
-
-```{r}
-train_data <- rs_final %>% 
-  filter(month >= "2021-01" & month <= "2022-12") %>% 
-  select(-1)
-  
-test_data <- rs_final %>% 
-  filter(month >= "2023-01" & month <= "2023-02") %>%
-  select(-1)
-```
-
-### 6.4.2 Converting the training sf dataframe to SpatialPointDataframe
+### 6.4.1 Converting the training sf dataframe to SpatialPointDataframe
 
 ```{r}
 train_data_sp <- as_Spatial(train_data)
 ```
 
-### 6.4.3 Building a non-spatial multiple linear regression with training data
-
-```{r}
-resale_mlr <- lm(resale_price ~ floor_area_sqm +
-                  storey_order + age_of_unit +
-                  PROX_CBD + PROX_ELDERLYCARE + PROX_HAWKER +
-                  PROX_MRT + PROX_PARK + PROX_MALL + 
-                  PROX_SUPERMARKET + PROX_GOOD_PRISCH +
-                  WITHIN_350M_CHILDCARE + WITHIN_350M_BUS +
-                  WITHIN_1KM_PRISCH,
-                data=train_data)
-summary(resale_mlr)
-```
-
-### 6.4.4 Fixed Bandwidth with gwr
+### 6.4.2 Fixed Bandwidth with gwr
 
 `bw.gwr()` will be used to determine the optimal bandwidth to be used.
 
@@ -1239,7 +1255,9 @@ bw.fixed <- bw.gwr(formula = resale_price ~ floor_area_sqm + storey_order +
                    longlat=FALSE)
 ```
 
-From the screenshot, the recommended bandwidth is 341
+![](images/image-792744810.png)
+
+From the results, the recommended bandwidth is 341
 
 Now, calibrate the model using our fixed bandwidth found from above, and the gaussian kernel.
 
@@ -1259,7 +1277,9 @@ gwr.fixed <- gwr.basic(formula = resale_price ~ floor_area_sqm + storey_order +
 gwr.fixed
 ```
 
-The adjusted R Square of GWR is **0.918** which is significantly better than the global multiple linear regression model of 0.6173.
+![](images/image-539083858.png)
+
+![](images/image-1872037825.png)![](images/image-2015292270.png)The adjusted R Square of GWR is **0.918** which is significantly better than the global multiple linear regression model of 0.6173.
 
 ### 6.4.5 Adaptive Bandwidth
 
@@ -1276,7 +1296,7 @@ bw.adaptive <- bw.gwr(formula = resale_price ~ floor_area_sqm + storey_order +
                       longlat=FALSE)
 ```
 
-From the results, **118** is the recommended data points to be used.
+![](images/image-206929719.png)From the results, **118** is the recommended data points to be used.
 
 ```{r}
 gwr.adaptive <- gwr.basic(formula = resale_price ~ floor_area_sqm + storey_order + 
@@ -1293,33 +1313,19 @@ gwr.adaptive <- gwr.basic(formula = resale_price ~ floor_area_sqm + storey_order
 gwr.adaptive
 ```
 
+![](images/image-1110903148.png)
+
+![](images/image-300839358.png)
+
+![](images/image-1483060758.png)
+
 ## 6.5 Hedonic Pricing Model with Random Forest
 
-In this section, we will prepare train and test datasets, calibrate the predictive models and compare the best model for predicting the future outcomes.
-
-### 6.5.1 Extracting coordinates data
+### 6.5.1 Calibrating Random Forest Model
 
 ```{r}
-coords <- st_coordinates(rs_final)
-coords_train <- st_coordinates(train_data)
-coords_test <- st_coordinates(test_data)
+train_data_nogeom <- train_data %>% st_drop_geometry()
 ```
-
-Write all the output into rds for future use:
-
-```{r}
-coords_train <- write_rds(coords_train, "data/model/coords_train.rds" )
-coords_test <- write_rds(coords_test, "data/model/coords_test.rds" )
-```
-
-Drop geometry field of the training data
-
-```{r}
-train_data <- train_data %>% 
-  st_drop_geometry()
-```
-
-### 6.5.2 Calibrating Random Forest Model
 
 ```{r}
 set.seed(1234)
@@ -1329,12 +1335,14 @@ rf <- ranger(resale_price ~ floor_area_sqm + storey_order +
                PROX_SUPERMARKET + PROX_GOOD_PRISCH + 
                WITHIN_350M_CHILDCARE + WITHIN_350M_BUS + 
                WITHIN_1KM_PRISCH,
-             data=train_data)
+             data=train_data_nogeom)
 ```
 
 ```{r}
 print(rf)
 ```
+
+![](images/image-281701554.png)
 
 ### 6.5.3 Calibrating Geographical Random Forest Model
 
@@ -1347,9 +1355,13 @@ gwRF_bw <- grf.bw(formula = resale_price ~ floor_area_sqm + storey_order +
                        PROX_SUPERMARKET +
                        WITHIN_350M_CHILDCARE + WITHIN_350M_BUS +
                        WITHIN_1KM_PRISCH,
-                 data = train_data,
+                 data = train_data_nogeom,
                  kernel = "adaptive",
                  coords = coords_train)
+```
+
+```{r}
+write_rds(gwRF_bw, "data/model/gwRF_bw.rds")
 ```
 
 #### 6.4.3.2 Calibrating Model with Training Data
@@ -1363,8 +1375,8 @@ gwRF_adaptive <- grf(formula = resale_price ~ floor_area_sqm + storey_order +
                        WITHIN_350M_CHILDCARE + WITHIN_350M_BUS +
                        WITHIN_1KM_PRISCH,
                      dframe=train_data, 
-                     ntree=30,
-                     bw=55,
+                     ntree=20,
+                     bw=1183,
                      kernel="adaptive",
                      coords=coords_train)
 ```
@@ -1426,8 +1438,10 @@ write_rds(test_data_p, "data/model/test_data_p.rds")
 
 ```{r}
 rmse(test_data_p$resale_price,
-     test_data_p$GRD_pred)
+     test_data_p$GRF_pred)
 ```
+
+Our RMSE is pretty small, given that the resale price is in the 100,000s and can go up to millions.
 
 ### 6.6.6 Visualising the predicted values
 
@@ -1437,3 +1451,7 @@ ggplot(data = test_data_p,
            y = resale_price)) +
   geom_point()
 ```
+
+Additionally, the points are scatters around the diagonal line which shows that it is a good predictive model.
+
+This model performed much better than the OLS Regression Model.
